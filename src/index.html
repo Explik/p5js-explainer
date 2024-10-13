@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ace Editor Code Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
+</head>
+
+<body>
+    <div id="editor" style="height: 500px; width: 100%;"></div>
+    <div id="position"></div>
+    <br>
+    <div id="function"></div>
+    <br>
+    <div id="statement"></div>
+    <br>
+    <div id="expression"></div>
+    <br>
+    <div id="reference"></div>
+
+    <script async>
+        // Initialize Ace Editor
+        const editor = ace.edit("editor");
+        editor.setTheme("ace/theme/monokai");
+        editor.session.setMode("ace/mode/javascript");
+
+        // Predefined piece of code
+        const code = `
+let textInput;
+
+function setup() {
+    noCanvas();
+    
+    textInput = createInput();
+    
+    let addTextToLogButton = createButton("Add text to log");
+    addTextToLogButton.mousePressed(addTextToLog);
+}
+
+function addTextToLog() {
+    let textValue = textInput.value();
+    console.log(textValue);
+}
+        `;
+        editor.setValue(code, -1); // -1 moves cursor to the start
+
+        const data = {
+            "source": "let textInput;\r\n\r\nfunction setup() {\r\n    noCanvas();\r\n    \r\n    textInput = createInput();\r\n    \r\n    let addTextToLogButton = createButton(\"Add text to log\");\r\n    addTextToLogButton.mousePressed(addTextToLog);\r\n}\r\n\r\nfunction addTextToLog() {\r\n    let textValue = textInput.value();\r\n    console.log(textValue);\r\n}\r\n",
+            "functions": [
+                {
+                    "type": "function",
+                    "start": 18,
+                    "end": 215,
+                    "description": "Funktionen setup() opretter et inputfelt og en knap, der, når den trykkes, udløser funktionen addTextToLog, samt deaktiverer det almindelige HTML-canvas."
+                },
+                {
+                    "type": "function",
+                    "start": 219,
+                    "end": 316,
+                    "description": "addTextToLog() henter værdien fra en tekstindtastning og sender den til konsollen for logning."
+                }
+            ],
+            "statements": [
+                {
+                    "type": "statement",
+                    "start": 0,
+                    "end": 14,
+                    "description": "let textInput; fortæller p5.js, at den skal oprette en variabel kaldet textInput, som kan bruges til at gemme en reference til et tekstinputfelt eller en anden værdi senere i koden."
+                },
+                {
+                    "type": "statement",
+                    "start": 42,
+                    "end": 53,
+                    "description": "noCanvas(); fortæller p5.js, at den ikke skal oprette et canvas-element på websiden. Dette kan være nyttigt, hvis du vil lave et p5.js-projekt, der kun bruger DOM-elementer, som eksempelvis knapper og tekstfelter, uden at tegne noget på et grafisk canvas."
+                },
+                {
+                    "type": "statement",
+                    "start": 65,
+                    "end": 91,
+                    "description": "textInput = createInput(); fortæller p5.js, at den skal oprette et nyt tekstinputfelt og gemme referencen til dette inputfelt i variablen textInput. Dette gør det muligt at tilgå og manipulere tekstinputfeltet senere i koden, for eksempel for at læse eller ændre den tekst, brugeren indtaster."
+                },
+                {
+                    "type": "statement",
+                    "start": 103,
+                    "end": 160,
+                    "description": "let addTextToLogButton = createButton(\"Add text to log\"); fortæller p5.js, at den skal oprette en ny knap med teksten \"Add text to log\" og gemme en reference til denne knap i variablen addTextToLogButton. Dette gør det muligt at interagere med knappen i koden, såsom at tilføje funktionalitet, der udføres, når knappen trykkes."
+                },
+                {
+                    "type": "statement",
+                    "start": 166,
+                    "end": 212,
+                    "description": "addTextToLogButton.mousePressed(addTextToLog); fortæller p5.js, at den skal køre funktionen addTextToLog, hver gang der trykkes på knappen, som refereres til i variablen addTextToLogButton. Dette tillader, at specielle handlinger udføres, når brugeren interagerer med knappen."
+                },
+                {
+                    "type": "statement",
+                    "start": 250,
+                    "end": 284,
+                    "description": "let textValue = textInput.value(); fortæller p5.js, at den skal hente den aktuelle tekstværdi fra tekstinputfeltet refereret til i variablen textInput og gemme denne værdi i en ny variabel kaldet textValue. Dette gør det muligt at arbejde med eller analysere den tekst, som brugeren har indtastet i inputfeltet."
+                },
+                {
+                    "type": "statement",
+                    "start": 290,
+                    "end": 313,
+                    "description": "console.log(textValue); fortæller p5.js, at den skal skrive den aktuelle værdi af variablen textValue til webkonsollen. Dette bruges ofte til debugging eller overvågning, så du kan se, hvilken tekst der er gemt i textValue, når koden køres."
+                }
+            ],
+            "expressions": [
+                {
+                    "type": "expression",
+                    "start": 65,
+                    "end": 91,
+                    "description": [
+                        "- `createInput()`: En funktion i p5.js, der opretter et HTML input-element, hvor brugeren kan indtaste tekst.\n- `textInput = createInput()`: Tildeler det oprettede input-element til variablen `textInput`, hvilket gør det muligt at referere til eller manipulere elementet senere i koden.\n- `textInput = createInput();`: Kompletten erklæring, der både opretter og lagrer input-elementet i `textInput` variablen; semikolon angiver slutningen på statementet i JavaScript."
+                    ]
+                }
+            ],
+            "references": [
+                {
+                    "type": "reference",
+                    "start": 0,
+                    "end": 14,
+                    "text": "x",
+                    "link": "https://p5js.org/reference/p5.Vector/x/"
+                },
+                {
+                    "type": "reference",
+                    "start": 0,
+                    "end": 14,
+                    "text": "name",
+                    "link": "https://p5js.org/reference/p5.File/name/"
+                },
+                {
+                    "type": "reference",
+                    "start": 0,
+                    "end": 14,
+                    "text": "class",
+                    "link": "https://p5js.org/reference/p5/class/"
+                },
+                {
+                    "type": "reference",
+                    "start": 0,
+                    "end": 14,
+                    "text": "if",
+                    "link": "https://p5js.org/reference/p5/if/"
+                },
+                {
+                    "type": "reference",
+                    "start": 0,
+                    "end": 14,
+                    "text": "let",
+                    "link": "https://p5js.org/reference/p5/let/"
+                },
+                {
+                    "type": "reference",
+                    "start": 0,
+                    "end": 14,
+                    "text": "JS Variables",
+                    "link": "https://www.w3schools.com/js/js_variables.asp"
+                },
+                {
+                    "type": "reference",
+                    "start": 0,
+                    "end": 14,
+                    "text": "JS Let",
+                    "link": "https://www.w3schools.com/js/js_let.asp"
+                },
+                {
+                    "type": "reference",
+                    "start": 42,
+                    "end": 53,
+                    "text": "noCanvas()",
+                    "link": "https://p5js.org/reference/p5/noCanvas/"
+                },
+                {
+                    "type": "reference",
+                    "start": 42,
+                    "end": 53,
+                    "text": "JS Syntax",
+                    "link": "https://www.w3schools.com/js/js_syntax.asp"
+                },
+                {
+                    "type": "reference",
+                    "start": 42,
+                    "end": 53,
+                    "text": "JS Functions",
+                    "link": "https://www.w3schools.com/js/js_functions.asp"
+                },
+                {
+                    "type": "reference",
+                    "start": 65,
+                    "end": 91,
+                    "text": "createInput()",
+                    "link": "https://p5js.org/reference/p5/createInput/"
+                },
+                {
+                    "type": "reference",
+                    "start": 65,
+                    "end": 91,
+                    "text": "JS Variables",
+                    "link": "https://www.w3schools.com/js/js_variables.asp"
+                },
+                {
+                    "type": "reference",
+                    "start": 65,
+                    "end": 91,
+                    "text": "JS Functions",
+                    "link": "https://www.w3schools.com/js/js_functions.asp"
+                },
+                {
+                    "type": "reference",
+                    "start": 103,
+                    "end": 160,
+                    "text": "createButton()",
+                    "link": "https://p5js.org/reference/p5/createButton/"
+                },
+                {
+                    "type": "reference",
+                    "start": 103,
+                    "end": 160,
+                    "text": "let",
+                    "link": "https://p5js.org/reference/p5/let/"
+                },
+                {
+                    "type": "reference",
+                    "start": 103,
+                    "end": 160,
+                    "text": "JS Variables",
+                    "link": "https://www.w3schools.com/js/js_variables.asp"
+                },
+                {
+                    "type": "reference",
+                    "start": 103,
+                    "end": 160,
+                    "text": "JS Let",
+                    "link": "https://www.w3schools.com/js/js_let.asp"
+                },
+                {
+                    "type": "reference",
+                    "start": 103,
+                    "end": 160,
+                    "text": "JS Functions",
+                    "link": "https://www.w3schools.com/js/js_functions.asp"
+                },
+                {
+                    "type": "reference",
+                    "start": 166,
+                    "end": 212,
+                    "text": "mousePressed()",
+                    "link": "https://p5js.org/reference/p5/mousePressed/"
+                },
+                {
+                    "type": "reference",
+                    "start": 166,
+                    "end": 212,
+                    "text": "mousePressed()",
+                    "link": "https://p5js.org/reference/p5.Element/mousePressed/"
+                },
+                {
+                    "type": "reference",
+                    "start": 166,
+                    "end": 212,
+                    "text": "JS Events",
+                    "link": "https://www.w3schools.com/js/js_events.asp"
+                },
+                {
+                    "type": "reference",
+                    "start": 250,
+                    "end": 284,
+                    "text": "value()",
+                    "link": "https://p5js.org/reference/p5.Element/value/"
+                },
+                {
+                    "type": "reference",
+                    "start": 250,
+                    "end": 284,
+                    "text": "let",
+                    "link": "https://p5js.org/reference/p5/let/"
+                },
+                {
+                    "type": "reference",
+                    "start": 250,
+                    "end": 284,
+                    "text": "JS Variables",
+                    "link": "https://www.w3schools.com/js/js_variables.asp"
+                },
+                {
+                    "type": "reference",
+                    "start": 250,
+                    "end": 284,
+                    "text": "JS Let",
+                    "link": "https://www.w3schools.com/js/js_let.asp"
+                },
+                {
+                    "type": "reference",
+                    "start": 290,
+                    "end": 313,
+                    "text": "console",
+                    "link": "https://p5js.org/reference/p5/console/"
+                },
+                {
+                    "type": "reference",
+                    "start": 290,
+                    "end": 313,
+                    "text": "JS Output",
+                    "link": "https://www.w3schools.com/js/js_output.asp"
+                },
+                {
+                    "type": "reference",
+                    "start": 290,
+                    "end": 313,
+                    "text": "JS Syntax",
+                    "link": "https://www.w3schools.com/js/js_syntax.asp"
+                }
+            ]
+        };
+
+        // Event listener to report mouse location in the string
+        editor.on("mousedown", function (e) {
+            const position = editor.renderer.screenToTextCoordinates(e.clientX, e.clientY);
+            const row = position.row;
+            const column = position.column;
+            const lines = editor.session.getLines(0, row);
+            let charCount = 0;
+            for (let i = 0; i < lines.length - 1; i++) {
+                charCount += lines[i].length + 1; // +1 for the newline character
+            }
+            charCount += column;
+
+            const functions = data.functions.filter(s => s.start <= charCount && charCount <= s.end);
+            const statements = data.statements.filter(s => s.start <= charCount && charCount <= s.end);
+            const expressions = data.expressions.filter(e => e.start <= charCount && charCount <= e.end);
+            const references = data.references.filter(r => r.start <= charCount && charCount <= r.end);
+            const referenceLinks = references.map(r => `<a href="${r.link}" target="_blank">${r.text}</a>`);
+
+            document.getElementById("position").innerHTML = "<b>Position:</b> " + charCount;
+            document.getElementById("function").innerHTML = functions.length ? "<b>Function:</b><br> " + functions.map(s => s.description).join("<br>").split("\n").join("<br>") : "";
+            document.getElementById("statement").innerHTML = statements.length ? "<b>Statement:</b><br> " + statements.map(s => s.description).join("<br>").split("\n").join("<br>") : "";
+            document.getElementById("expression").innerHTML = expressions.length ? "<b>Expression:</b><br>" + expressions.map(e => e.description).join("<br>").split("\n").join("<br>") : "";
+            document.getElementById("reference").innerHTML = references.length ? "<b>Reference:</b><br>" + referenceLinks.join(", ") : "";
+        });
+    </script>
+</body>
+
+</html>
