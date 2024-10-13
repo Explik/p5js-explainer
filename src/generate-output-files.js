@@ -1,8 +1,9 @@
-import fs, { link } from 'fs';
+import fs from 'fs';
 import path from 'path';
 import { parse } from 'acorn';
 import { compoundSyntaxNodes, extractStatements, generateSource, extractExpressions, memberSyntaxNodes, extractFunctionDeclarations } from './syntax.js';
-import { firstStatementPrompt, subsequentStatementPrompt, generatePrompts, fetchPromptAnswersAsync, expressionPrompt, generatePrompt, classificationPrompt, functionPrompt } from './chatgpt.js';
+import { fetchPromptAnswersAsync, generatePrompt, generatePrompts  } from './chatgpt.js';
+import { firstStatementPrompt, subsequentStatementPrompt, expressionPrompt, classificationPrompt, functionPrompt} from './prompts.js';
 
 const inputFilePath = 'input/hello-world-button.js';
 const referenceDirectoryPath = 'input/references/';
