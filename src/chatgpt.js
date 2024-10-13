@@ -1,5 +1,12 @@
 import OpenAI from "openai";
 
+export const functionPrompt = `
+Du er en programmerings underviser på et kode kursus for ikke-tekniske universitetsstuderende uden programmeringserfaring. Du skal beskrive funktionen af nedenstående funktion i en sætning begynde med funktions navnet, f.eks. setup() opretter... 
+
+{0}
+`.trim();
+
+
 export const firstStatementPrompt = `
 Du er en programmerings underviser på et kode kursus for ikke-tekniske universitetsstuderende uden programmeringserfaring. Du skal beskrive enkelt statements til en guide omkring p5.js. Beskrivelserne skal følge formen: 
 

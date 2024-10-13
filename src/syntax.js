@@ -21,6 +21,18 @@ export const memberSyntaxNodes = [
     'Literal'
 ]
 
+export function extractFunctionDeclarations(syntaxTree) {
+    const functionDeclarations = [];
+
+    walk.simple(syntaxTree, {
+        FunctionDeclaration(node) {
+            functionDeclarations.push(node);
+        }
+    });
+
+    return functionDeclarations;
+}
+
 export function extractStatements(excludedNodeTypes, syntaxTree) {
     const allStatements = [];
 

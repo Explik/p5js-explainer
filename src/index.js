@@ -1,13 +1,14 @@
 import fs, { link } from 'fs';
 import path from 'path';
 import { parse } from 'acorn';
-import { compoundSyntaxNodes, extractStatements, generateSource, extractExpressions, memberSyntaxNodes } from './syntax.js';
-import { firstStatementPrompt, subsequentStatementPrompt, generatePrompts, fetchPromptAnswersAsync, expressionPrompt, generatePrompt, classificationPrompt } from './chatgpt.js';
+import { compoundSyntaxNodes, extractStatements, generateSource, extractExpressions, memberSyntaxNodes, extractFunctionDeclarations } from './syntax.js';
+import { firstStatementPrompt, subsequentStatementPrompt, generatePrompts, fetchPromptAnswersAsync, expressionPrompt, generatePrompt, classificationPrompt, functionPrompt } from './chatgpt.js';
 
 const inputFilePath = 'input/hello-world-button.js';
 const referenceDirectoryPath = 'input/references/';
 const outputDirectoryPath = 'output/hello-world-button/';
 
+const functionFilePath = `${outputDirectoryPath}functions.json`;
 const statementFilePath = `${outputDirectoryPath}statements.json`;
 const expressionFilePath = `${outputDirectoryPath}expressions.json`;
 const appliedReferenceFilePath = `${outputDirectoryPath}references.json`; 
@@ -15,6 +16,27 @@ const appliedReferenceFilePath = `${outputDirectoryPath}references.json`;
 const inputFileContent = fs.readFileSync(inputFilePath, 'utf-8');
 const syntaxTree = parse(inputFileContent, { ecmaVersion: "latest" });
 const statements = extractStatements(compoundSyntaxNodes, syntaxTree);
+
+if (!fs.existsSync(functionFilePath)) {
+    const codeReferences = [];
+
+    for(let functionDeclaration of extractFunctionDeclarations(syntaxTree)) {
+        const functionSource = generateSource(inputFileContent, functionDeclaration);
+        const prompt = functionPrompt.replace("{0}", functionSource);
+        const promptAnswer = (await fetchPromptAnswersAsync([prompt]))[0];
+        
+        codeReferences.push({
+            type: "function",
+            start: functionDeclaration.start,
+            end: functionDeclaration.end,
+            description: promptAnswer
+        });
+    }
+
+    const outputFileContent = JSON.stringify(codeReferences, null, 2);
+    fs.mkdirSync(outputDirectoryPath, { recursive: true });
+    fs.writeFileSync(functionFilePath, outputFileContent);
+}
 
 if (!fs.existsSync(statementFilePath)) {
     const statementsAsStrings = statements.map(s => generateSource(inputFileContent, s));
