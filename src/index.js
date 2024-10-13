@@ -13,6 +13,8 @@ const statementFilePath = `${outputDirectoryPath}statements.json`;
 const expressionFilePath = `${outputDirectoryPath}expressions.json`;
 const appliedReferenceFilePath = `${outputDirectoryPath}references.json`; 
 
+const bundleFilePath = 'output/hello-world-button.json';
+
 const inputFileContent = fs.readFileSync(inputFilePath, 'utf-8');
 const syntaxTree = parse(inputFileContent, { ecmaVersion: "latest" });
 const statements = extractStatements(compoundSyntaxNodes, syntaxTree);
@@ -126,4 +128,17 @@ if (!fs.existsSync(appliedReferenceFilePath)) {
     const outputFileContent = JSON.stringify(codeReferences, null, 2);
     fs.mkdirSync(outputDirectoryPath, { recursive: true });
     fs.writeFileSync(appliedReferenceFilePath, outputFileContent);
+}
+
+if (!fs.existsSync(bundleFilePath)) {
+    const codeBundle = {
+        source: inputFileContent,
+        functions: JSON.parse(fs.readFileSync(functionFilePath, 'utf-8')),
+        statements: JSON.parse(fs.readFileSync(statementFilePath, 'utf-8')),
+        expressions: JSON.parse(fs.readFileSync(expressionFilePath, 'utf-8')),
+        references: JSON.parse(fs.readFileSync(appliedReferenceFilePath, 'utf-8'))
+    };
+
+    const outputFileContent = JSON.stringify(codeBundle, null, 2);
+    fs.writeFileSync(bundleFilePath, outputFileContent);
 }
