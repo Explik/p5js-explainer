@@ -4,10 +4,10 @@ import { parse } from 'acorn';
 import { firstStatementPrompt, subsequentStatementPrompt, expressionPrompt, classificationPrompt, functionPrompt } from './prompts.js';
 import { fetchPromptAnswerAsync, fetchPromptAnswersAsync, generateFileAsync, generatePrompt, generatePrompts, compoundSyntaxNodes, extractStatements, generateSource, extractExpressions, memberSyntaxNodes, extractFunctionDeclarations, getFileNames, getFilePaths } from './utils.js';
 
-const inputDirectory = 'input';
-const referenceDirectory = 'input/references';
-const temporaryDirectory = 'temp';
-const outputDirectory = 'output';
+const inputDirectory = 'data';
+const referenceDirectory = 'data/references';
+const temporaryDirectory = 'dist/cache';
+const outputDirectory = 'dist';
 
 // Fetch available reference
 const referenceCollections = [];
