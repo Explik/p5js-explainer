@@ -1,145 +1,134 @@
 import fs from 'fs';
 import path from 'path';
 import { parse } from 'acorn';
-import { compoundSyntaxNodes, extractStatements, generateSource, extractExpressions, memberSyntaxNodes, extractFunctionDeclarations } from './syntax.js';
-import { fetchPromptAnswersAsync, generatePrompt, generatePrompts  } from './chatgpt.js';
-import { firstStatementPrompt, subsequentStatementPrompt, expressionPrompt, classificationPrompt, functionPrompt} from './prompts.js';
+import { firstStatementPrompt, subsequentStatementPrompt, expressionPrompt, classificationPrompt, functionPrompt } from './prompts.js';
+import { fetchPromptAnswerAsync, fetchPromptAnswersAsync, generateFileAsync, generatePrompt, generatePrompts, compoundSyntaxNodes, extractStatements, generateSource, extractExpressions, memberSyntaxNodes, extractFunctionDeclarations, getFileNames, getFilePaths } from './utils.js';
 
-const inputFilePath = 'input/hello-world-button.js';
-const referenceDirectoryPath = 'input/references/';
-const outputDirectoryPath = 'output/hello-world-button/';
+const inputDirectory = 'input';
+const referenceDirectory = 'input/references';
+const temporaryDirectory = 'temp';
+const outputDirectory = 'output';
 
-const functionFilePath = `${outputDirectoryPath}functions.json`;
-const statementFilePath = `${outputDirectoryPath}statements.json`;
-const expressionFilePath = `${outputDirectoryPath}expressions.json`;
-const appliedReferenceFilePath = `${outputDirectoryPath}references.json`; 
+// Fetch available reference
+const referenceCollections = [];
+for (let referenceFilePath of getFilePaths(referenceDirectory)) {
+    const referenceFileContent = fs.readFileSync(referenceFilePath, 'utf-8');
+    const referenceFileCollection = JSON.parse(referenceFileContent);
 
-const bundleFilePath = 'output/hello-world-button.json';
-
-const inputFileContent = fs.readFileSync(inputFilePath, 'utf-8');
-const syntaxTree = parse(inputFileContent, { ecmaVersion: "latest" });
-const statements = extractStatements(compoundSyntaxNodes, syntaxTree);
-
-if (!fs.existsSync(functionFilePath)) {
-    const codeReferences = [];
-
-    for(let functionDeclaration of extractFunctionDeclarations(syntaxTree)) {
-        const functionSource = generateSource(inputFileContent, functionDeclaration);
-        const prompt = functionPrompt.replace("{0}", functionSource);
-        const promptAnswer = (await fetchPromptAnswersAsync([prompt]))[0];
-        
-        codeReferences.push({
-            type: "function",
-            start: functionDeclaration.start,
-            end: functionDeclaration.end,
-            description: promptAnswer
-        });
-    }
-
-    const outputFileContent = JSON.stringify(codeReferences, null, 2);
-    fs.mkdirSync(outputDirectoryPath, { recursive: true });
-    fs.writeFileSync(functionFilePath, outputFileContent);
+    referenceCollections.push(referenceFileCollection);
 }
 
-if (!fs.existsSync(statementFilePath)) {
-    const statementsAsStrings = statements.map(s => generateSource(inputFileContent, s));
-    const statementsAsPrompts = generatePrompts(firstStatementPrompt, subsequentStatementPrompt, statementsAsStrings);
-    const statementsAsPromptAnswers = await fetchPromptAnswersAsync(statementsAsPrompts);
+// Generate output files
+for (let inputFileName of getFileNames(inputDirectory)) {
+    const inputFilePath = path.join(inputDirectory, inputFileName);
+    const inputFileNameWithoutExtension = inputFileName.split('.').slice(0, -1).join('.');
+    const currentTemporaryDirectory = path.join(temporaryDirectory, inputFileNameWithoutExtension);
 
-    const codeDescriptions = [];
-    for (let i = 0; i < statements.length; i++) {
-        const statement = statements[i];
+    const sourceCode = fs.readFileSync(inputFilePath, 'utf-8');
+    const syntaxTree = parse(sourceCode, { ecmaVersion: "latest" });
+    const statements = extractStatements(compoundSyntaxNodes, syntaxTree);
 
-        codeDescriptions.push({
-            type: "statement",
-            start: statement.start,
-            end: statement.end,
-            description: statementsAsPromptAnswers[i]
-        });
-    }
+    const functionFilePath = path.join(currentTemporaryDirectory, 'functions.json');
+    await generateFileAsync(functionFilePath, async () => {
+        const codeReferences = [];
 
-    const outputFileContent = JSON.stringify(codeDescriptions, null, 2);
+        for (let node of extractFunctionDeclarations(syntaxTree)) {
+            const nodeSource = generateSource(sourceCode, node);
+            const prompt = generatePrompt(functionPrompt, nodeSource);
+            const promptAnswer = await fetchPromptAnswerAsync(prompt);
 
-    fs.mkdirSync(outputDirectoryPath, { recursive: true });
-    fs.writeFileSync(statementFilePath, outputFileContent);
-}
+            codeReferences.push({
+                type: "function",
+                start: node.start,
+                end: node.end,
+                description: promptAnswer
+            });
+        }
+        return JSON.stringify(codeReferences, null, 2);
+    });
 
-if (!fs.existsSync(expressionFilePath)) {
-    const codeDescriptions = [];
+    const statementFilePath = path.join(currentTemporaryDirectory, 'statements.json');
+    await generateFileAsync(statementFilePath, async () => {
+        const statementsAsStrings = statements.map(s => generateSource(sourceCode, s));
+        const statementsAsPrompts = generatePrompts(firstStatementPrompt, subsequentStatementPrompt, statementsAsStrings);
+        const statementsAsPromptAnswers = await fetchPromptAnswersAsync(statementsAsPrompts);
 
-    for(let statement of statements) {
-        const expressions = [...extractExpressions(memberSyntaxNodes, statement), statement];
-        if (expressions.length <= 2)
-            continue;
+        const codeDescriptions = [];
+        for (let i = 0; i < statements.length; i++) {
+            const statement = statements[i];
 
-        const promptListElements = expressions.map(e => generateSource(inputFileContent, e));
-        const promptList = "- " + promptListElements.join('\n- ');
-        const prompt = generatePrompt(expressionPrompt, promptList);
-        const promptAnswer = await fetchPromptAnswersAsync([prompt]);
-        
-        codeDescriptions.push({
-            type: "expression",
-            start: statement.start,
-            end: statement.end,
-            description: promptAnswer
-        });
-    }
+            codeDescriptions.push({
+                type: "statement",
+                start: statement.start,
+                end: statement.end,
+                description: statementsAsPromptAnswers[i]
+            });
+        }
+        return JSON.stringify(codeDescriptions, null, 2);
+    });
 
-    const outputFileContent = JSON.stringify(codeDescriptions, null, 2);
-    fs.mkdirSync(outputDirectoryPath, { recursive: true });
-    fs.writeFileSync(expressionFilePath, outputFileContent);
-}
+    const expressionFilePath = path.join(currentTemporaryDirectory, 'expressions.json');
+    await generateFileAsync(expressionFilePath, async () => {
+        const codeDescriptions = [];
 
-if (!fs.existsSync(appliedReferenceFilePath)) {
-    // Fetch available reference
-    const referenceCollections = []; 
-    for(let referenceFile of fs.readdirSync(referenceDirectoryPath)) {
-        const referenceFilePath = path.join(referenceDirectoryPath, referenceFile);
-        const referenceFileContent = fs.readFileSync(referenceFilePath, 'utf-8');
-        const referenceFileCollection = JSON.parse(referenceFileContent);
+        for (let statement of statements) {
+            const expressions = [...extractExpressions(memberSyntaxNodes, statement), statement];
+            if (expressions.length <= 2)
+                continue;
 
-        referenceCollections.push(referenceFileCollection);
-    }
+            const promptListElements = expressions.map(e => generateSource(sourceCode, e));
+            const promptList = "- " + promptListElements.join('\n- ');
+            const prompt = generatePrompt(expressionPrompt, promptList);
+            const promptAnswer = await fetchPromptAnswerAsync(prompt);
 
-    // Find applied references per statement
-    const codeReferences = [];
-    for(let statement of statements) {
-        for (let referenceCollection of referenceCollections) {
-            const statementSource = generateSource(inputFileContent, statement);
-            const referenceList = referenceCollection.map(s => s.text.trim()).join(", "); 
-            const prompt = classificationPrompt.replace("{0}", statementSource).replace("{1}", referenceList);
-            const promptAnswer = (await fetchPromptAnswersAsync([prompt]))[0];
-            
-            for(let reference of referenceCollection) {
-                const referenceText = reference.text.trim();
+            codeDescriptions.push({
+                type: "expression",
+                start: statement.start,
+                end: statement.end,
+                description: promptAnswer
+            });
+        }
+        return JSON.stringify(codeDescriptions, null, 2);
+    });
 
-                if (promptAnswer.includes(referenceText)) {
-                    codeReferences.push({
-                        type: "reference",
-                        start: statement.start,
-                        end: statement.end,
-                        text: reference.text,
-                        link: reference.link
-                    });
+    const appliedReferenceFilePath = path.join(currentTemporaryDirectory, 'references.json');
+    await generateFileAsync(appliedReferenceFilePath, async () => {
+        // Find applied references per statement
+        const codeReferences = [];
+        for (let statement of statements) {
+            for (let referenceCollection of referenceCollections) {
+                const statementSource = generateSource(sourceCode, statement);
+                const referenceList = referenceCollection.map(s => s.text.trim()).join(", ");
+                const prompt = classificationPrompt.replace("{0}", statementSource).replace("{1}", referenceList);
+                const promptAnswer = await fetchPromptAnswerAsync(prompt);
+
+                for (let reference of referenceCollection) {
+                    const referenceText = reference.text.trim();
+
+                    if (promptAnswer.includes(referenceText)) {
+                        codeReferences.push({
+                            type: "reference",
+                            start: statement.start,
+                            end: statement.end,
+                            text: reference.text,
+                            link: reference.link
+                        });
+                    }
                 }
             }
         }
-    }
+        return JSON.stringify(codeReferences, null, 2);
+    });
 
-    const outputFileContent = JSON.stringify(codeReferences, null, 2);
-    fs.mkdirSync(outputDirectoryPath, { recursive: true });
-    fs.writeFileSync(appliedReferenceFilePath, outputFileContent);
-}
-
-if (!fs.existsSync(bundleFilePath)) {
-    const codeBundle = {
-        source: inputFileContent,
-        functions: JSON.parse(fs.readFileSync(functionFilePath, 'utf-8')),
-        statements: JSON.parse(fs.readFileSync(statementFilePath, 'utf-8')),
-        expressions: JSON.parse(fs.readFileSync(expressionFilePath, 'utf-8')),
-        references: JSON.parse(fs.readFileSync(appliedReferenceFilePath, 'utf-8'))
-    };
-
-    const outputFileContent = JSON.stringify(codeBundle, null, 2);
-    fs.writeFileSync(bundleFilePath, outputFileContent);
+    const bundleFilePath = path.join(outputDirectory, inputFileNameWithoutExtension + '.json');
+    await generateFileAsync(bundleFilePath, async () => {
+        const codeBundle = {
+            source: sourceCode,
+            functions: JSON.parse(fs.readFileSync(functionFilePath, 'utf-8')),
+            statements: JSON.parse(fs.readFileSync(statementFilePath, 'utf-8')),
+            expressions: JSON.parse(fs.readFileSync(expressionFilePath, 'utf-8')),
+            references: JSON.parse(fs.readFileSync(appliedReferenceFilePath, 'utf-8'))
+        };
+        return JSON.stringify(codeBundle, null, 2);
+    });
 }
