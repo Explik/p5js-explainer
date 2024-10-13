@@ -1,13 +1,16 @@
-import fs from 'fs';
+import fs, { link } from 'fs';
+import path from 'path';
 import { parse } from 'acorn';
 import { compoundSyntaxNodes, extractStatements, generateSource, extractExpressions, memberSyntaxNodes } from './syntax.js';
-import { firstStatementPrompt, subsequentStatementPrompt, generatePrompts, fetchPromptAnswersAsync, expressionPrompt, generatePrompt } from './chatgpt.js';
+import { firstStatementPrompt, subsequentStatementPrompt, generatePrompts, fetchPromptAnswersAsync, expressionPrompt, generatePrompt, classificationPrompt } from './chatgpt.js';
 
 const inputFilePath = 'input/hello-world-button.js';
+const referenceDirectoryPath = 'input/references/';
 const outputDirectoryPath = 'output/hello-world-button/';
 
 const statementFilePath = `${outputDirectoryPath}statements.json`;
 const expressionFilePath = `${outputDirectoryPath}expressions.json`;
+const appliedReferenceFilePath = `${outputDirectoryPath}references.json`; 
 
 const inputFileContent = fs.readFileSync(inputFilePath, 'utf-8');
 const syntaxTree = parse(inputFileContent, { ecmaVersion: "latest" });
@@ -60,4 +63,45 @@ if (!fs.existsSync(expressionFilePath)) {
     const outputFileContent = JSON.stringify(codeDescriptions, null, 2);
     fs.mkdirSync(outputDirectoryPath, { recursive: true });
     fs.writeFileSync(expressionFilePath, outputFileContent);
+}
+
+if (!fs.existsSync(appliedReferenceFilePath)) {
+    // Fetch available reference
+    const referenceCollections = []; 
+    for(let referenceFile of fs.readdirSync(referenceDirectoryPath)) {
+        const referenceFilePath = path.join(referenceDirectoryPath, referenceFile);
+        const referenceFileContent = fs.readFileSync(referenceFilePath, 'utf-8');
+        const referenceFileCollection = JSON.parse(referenceFileContent);
+
+        referenceCollections.push(referenceFileCollection);
+    }
+
+    // Find applied references per statement
+    const codeReferences = [];
+    for(let statement of statements) {
+        for (let referenceCollection of referenceCollections) {
+            const statementSource = generateSource(inputFileContent, statement);
+            const referenceList = referenceCollection.map(s => s.text.trim()).join(", "); 
+            const prompt = classificationPrompt.replace("{0}", statementSource).replace("{1}", referenceList);
+            const promptAnswer = (await fetchPromptAnswersAsync([prompt]))[0];
+            
+            for(let reference of referenceCollection) {
+                const referenceText = reference.text.trim();
+
+                if (promptAnswer.includes(referenceText)) {
+                    codeReferences.push({
+                        type: "reference",
+                        start: statement.start,
+                        end: statement.end,
+                        text: reference.text,
+                        link: reference.link
+                    });
+                }
+            }
+        }
+    }
+
+    const outputFileContent = JSON.stringify(codeReferences, null, 2);
+    fs.mkdirSync(outputDirectoryPath, { recursive: true });
+    fs.writeFileSync(appliedReferenceFilePath, outputFileContent);
 }

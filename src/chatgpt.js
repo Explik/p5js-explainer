@@ -22,6 +22,16 @@ Beskriv meget kort og uden indledning:
 {0}
 `.trim();
 
+export const classificationPrompt = `
+Classify the used syntax in the following code sample: 
+{0}
+
+Valid classifications:
+{1}
+
+Write only the classification names and most relevant classifications
+`.trim();
+
 export function generatePrompt(prompt, placeholders) {
     return prompt.replace('{0}', placeholders);
 }
