@@ -8,7 +8,7 @@ for (let i = 0; i < linkElements.length; i++) {
     const linkElement = linkElements[i];
     const linkTextElement = linkElement.querySelector("span");
     
-    const linkText = linkTextElement.innerText;
+    const linkText = "p5.js " + linkTextElement.innerText;
     const linkHref = linkElement.href;
 
     buffer.push({
