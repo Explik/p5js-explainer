@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P5.js Explainer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
+</head>
+
+<body>
+    <div id="menu"></div>
+    <div id="editor" style="height: 500px; width: 100%;"></div>
+    <div id="position"></div>
+    <br>
+    <div id="function"></div>
+    <br>
+    <div id="statement"></div>
+    <br>
+    <div id="expression"></div>
+    <br>
+    <div id="reference"></div>
+
+    <script async>
+        let editor;
+        let data; 
+
+        InitializeMenu();
+        initializeEditor();
+        
+        async function InitializeMenu() {
+            const response = await fetch("../dist/index.json");
+            const fileNames = await response.json();
+            const fileLinks = fileNames
+                .map(item => item.split(".")[0])
+                .map(item => `<a href="?id=${item}">${item}</a>`);
+            
+            document.getElementById("menu").innerHTML = fileLinks.join(", ");
+        }
+
+        async function initializeEditor() {
+            // Initialize Ace Editor
+            editor = ace.edit("editor");
+            editor.setTheme("ace/theme/monokai");
+            editor.session.setMode("ace/mode/javascript");
+
+            data = await fetchData();
+
+            editor.setValue(data.source, -1); 
+            editor.on("mousedown", updateEditor);
+        }
+
+        function getQueryParameter(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        async function fetchData() {
+            const id = getQueryParameter("id");
+            const response = await fetch(`../dist/${id}.json`);
+            return await response.json();
+        }
+
+        function updateEditor(e) {
+            if (!editor || !data)
+                return;
+
+            const position = editor.renderer.screenToTextCoordinates(e.clientX, e.clientY);
+            const row = position.row;
+            const column = position.column;
+            const lines = editor.session.getLines(0, row);
+
+            let charCount = 0;
+            for (let i = 0; i < lines.length - 1; i++) {
+                charCount += lines[i].length + 1; // +1 for the newline character
+            }
+            charCount += column;
+
+            const functions = data.functions.filter(s => s.start <= charCount && charCount <= s.end);
+            const statements = data.statements.filter(s => s.start <= charCount && charCount <= s.end);
+            const expressions = data.expressions.filter(e => e.start <= charCount && charCount <= e.end);
+            const references = data.references.filter(r => r.start <= charCount && charCount <= r.end);
+            const referenceLinks = references.map(r => `<a href="${r.link}" target="_blank">${r.text}</a>`);
+
+            document.getElementById("position").innerHTML = "<b>Position:</b> " + charCount;
+            document.getElementById("function").innerHTML = functions.length ? "<b>Function:</b><br> " + functions.map(s => s.description).join("<br>").split("\n").join("<br>") : "";
+            document.getElementById("statement").innerHTML = statements.length ? "<b>Statement:</b><br> " + statements.map(s => s.description).join("<br>").split("\n").join("<br>") : "";
+            document.getElementById("expression").innerHTML = expressions.length ? "<b>Expression:</b><br>" + expressions.map(e => e.description).join("<br>").split("\n").join("<br>") : "";
+            document.getElementById("reference").innerHTML = references.length ? "<b>Reference:</b><br>" + referenceLinks.join(", ") : "";
+        }
+    </script>
+</body>
+
+</html>
