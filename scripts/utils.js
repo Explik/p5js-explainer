@@ -77,7 +77,7 @@ export function getFileNames(directory) {
         .map(d => d.name);
 }
 
-export async function generateFileAsync(filePath, contentCallback) {
+export async function generateFileIfNonExistentAsync(filePath, contentCallback) {
     if (typeof filePath !== 'string')
         throw new Error('filePath must be a string');
     if (typeof contentCallback !== 'function')

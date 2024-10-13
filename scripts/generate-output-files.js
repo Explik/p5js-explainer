@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { parse } from 'acorn';
 import { firstStatementPrompt, subsequentStatementPrompt, expressionPrompt, classificationPrompt, functionPrompt } from './prompts.js';
-import { fetchPromptAnswerAsync, fetchPromptAnswersAsync, generateFileAsync, generatePrompt, generatePrompts, compoundSyntaxNodes, extractStatements, generateSource, extractExpressions, memberSyntaxNodes, extractFunctionDeclarations, getFileNames, getFilePaths } from './utils.js';
+import { fetchPromptAnswerAsync, fetchPromptAnswersAsync, generateFileIfNonExistentAsync, generatePrompt, generatePrompts, compoundSyntaxNodes, extractStatements, generateSource, extractExpressions, memberSyntaxNodes, extractFunctionDeclarations, getFileNames, getFilePaths } from './utils.js';
 
 const inputDirectory = 'data';
 const referenceDirectory = 'data/references';
@@ -18,6 +18,10 @@ for (let referenceFilePath of getFilePaths(referenceDirectory)) {
     referenceCollections.push(referenceFileCollection);
 }
 
+// Setup output directories
+fs.mkdirSync(temporaryDirectory, { recursive: true });
+fs.mkdirSync(outputDirectory, { recursive: true });
+
 // Generate output files
 for (let inputFileName of getFileNames(inputDirectory)) {
     const inputFilePath = path.join(inputDirectory, inputFileName);
@@ -29,7 +33,7 @@ for (let inputFileName of getFileNames(inputDirectory)) {
     const statements = extractStatements(compoundSyntaxNodes, syntaxTree);
 
     const functionFilePath = path.join(currentTemporaryDirectory, 'functions.json');
-    await generateFileAsync(functionFilePath, async () => {
+    await generateFileIfNonExistentAsync(functionFilePath, async () => {
         const codeReferences = [];
 
         for (let node of extractFunctionDeclarations(syntaxTree)) {
@@ -48,7 +52,7 @@ for (let inputFileName of getFileNames(inputDirectory)) {
     });
 
     const statementFilePath = path.join(currentTemporaryDirectory, 'statements.json');
-    await generateFileAsync(statementFilePath, async () => {
+    await generateFileIfNonExistentAsync(statementFilePath, async () => {
         const statementsAsStrings = statements.map(s => generateSource(sourceCode, s));
         const statementsAsPrompts = generatePrompts(firstStatementPrompt, subsequentStatementPrompt, statementsAsStrings);
         const statementsAsPromptAnswers = await fetchPromptAnswersAsync(statementsAsPrompts);
@@ -68,7 +72,7 @@ for (let inputFileName of getFileNames(inputDirectory)) {
     });
 
     const expressionFilePath = path.join(currentTemporaryDirectory, 'expressions.json');
-    await generateFileAsync(expressionFilePath, async () => {
+    await generateFileIfNonExistentAsync(expressionFilePath, async () => {
         const codeDescriptions = [];
 
         for (let statement of statements) {
@@ -92,7 +96,7 @@ for (let inputFileName of getFileNames(inputDirectory)) {
     });
 
     const appliedReferenceFilePath = path.join(currentTemporaryDirectory, 'references.json');
-    await generateFileAsync(appliedReferenceFilePath, async () => {
+    await generateFileIfNonExistentAsync(appliedReferenceFilePath, async () => {
         // Find applied references per statement
         const codeReferences = [];
         for (let statement of statements) {
@@ -120,15 +124,20 @@ for (let inputFileName of getFileNames(inputDirectory)) {
         return JSON.stringify(codeReferences, null, 2);
     });
 
+    // Generate bundle file
     const bundleFilePath = path.join(outputDirectory, inputFileNameWithoutExtension + '.json');
-    await generateFileAsync(bundleFilePath, async () => {
-        const codeBundle = {
-            source: sourceCode,
-            functions: JSON.parse(fs.readFileSync(functionFilePath, 'utf-8')),
-            statements: JSON.parse(fs.readFileSync(statementFilePath, 'utf-8')),
-            expressions: JSON.parse(fs.readFileSync(expressionFilePath, 'utf-8')),
-            references: JSON.parse(fs.readFileSync(appliedReferenceFilePath, 'utf-8'))
-        };
-        return JSON.stringify(codeBundle, null, 2);
-    });
+    const bundleFileObject = {
+        source: sourceCode,
+        functions: JSON.parse(fs.readFileSync(functionFilePath, 'utf-8')),
+        statements: JSON.parse(fs.readFileSync(statementFilePath, 'utf-8')),
+        expressions: JSON.parse(fs.readFileSync(expressionFilePath, 'utf-8')),
+        references: JSON.parse(fs.readFileSync(appliedReferenceFilePath, 'utf-8'))
+    };
+    const bundleFileContent = JSON.stringify(bundleFileObject, null, 2);
+    fs.writeFileSync(bundleFilePath, bundleFileContent);
 }
+
+// Generate index file 
+const indexFilePath = path.join(outputDirectory, 'index.json');
+const indexFileContnet = JSON.stringify(getFileNames(inputDirectory), null, 2);
+fs.writeFileSync(indexFilePath, indexFileContnet);
