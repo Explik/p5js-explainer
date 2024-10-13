@@ -42,6 +42,8 @@
             // Initialize Ace Editor
             editor = ace.edit("editor");
             editor.setTheme("ace/theme/monokai");
+            editor.setShowPrintMargin(false);
+            editor.setReadOnly(true);
             editor.session.setMode("ace/mode/javascript");
 
             data = await fetchData();
