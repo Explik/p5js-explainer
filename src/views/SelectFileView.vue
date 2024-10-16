@@ -40,7 +40,7 @@ export default {
                 name: "Category 1", 
                 icon: "mdi-weight-bathroom", 
                 items: [
-                    { name: "Item #1", icon: "mdi-plus", path: "" },
+                    { name: "BMI Calculator", icon: "mdi-plus", path: "bmi-calculator" },
                     { name: "Item #2", icon: "mdi-eye", path: "" },
                     { name: "Item #3", icon: "mdi-pencil", path: "" },
                     { name: "Item #4", icon: "mdi-delete", path: "" },
@@ -52,7 +52,7 @@ export default {
         handleSelection(item) {
             this.$router.push({
                 name: "explain",
-                params: { id: item.name },
+                params: { id: item.path },
             });
         }
     }

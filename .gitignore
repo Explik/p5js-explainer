@@ -8,8 +8,7 @@
 /dist
 /tmp
 /out-tsc
-/temp
-/output
+/public
 
 # Runtime data
 pids

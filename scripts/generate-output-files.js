@@ -6,8 +6,8 @@ import { fetchPromptAnswerAsync, fetchPromptAnswersAsync, generateFileIfNonExist
 
 const inputDirectory = 'data';
 const referenceDirectory = 'data/references';
-const temporaryDirectory = 'dist/cache';
-const outputDirectory = 'dist';
+const temporaryDirectory = 'public/cache';
+const outputDirectory = 'public';
 
 // Fetch available reference
 const referenceCollections = [];
