@@ -1,8 +1,47 @@
 <template>
     <v-card class="px-6 py-6 overflow-y-scroll">
-        <div id="position" class="text-body-1 mb-4">Position: {{position}}</div>
+        <v-row style="min-height: 280px;">
+            <v-col cols="2" class="d-flex flex-column align-center justify-center">
+                <v-btn icon class="w-full mb-4" @click="handlePreviousStatement">
+                    <v-icon>mdi-arrow-up</v-icon>
+                </v-btn>
+
+                <!--<v-btn icon class="w-full mt-4 mb-4">
+                    <v-icon>mdi-circle</v-icon>
+                </v-btn>-->
+
+                <v-btn icon class="w-full" @click="handleNextStatement">
+                    <v-icon>mdi-arrow-down</v-icon>
+                </v-btn>
+            </v-col>
+
+            <v-col cols="10" class="d-flex flex-column  justify-center">
+                <v-card outlined>
+                    <v-card-text>
+                        <div class="limited-text">
+                            {{ previousStatementDescription ?? "[Program start]"}}
+                        </div>
+                    </v-card-text>
+                </v-card>
+                <v-card class="mt-4 mb-4">
+                    <v-card-text class="bg-slate-200">
+                        {{ statementDescription }}
+                    </v-card-text>
+                </v-card>
+                <v-card>
+                    <v-card-text class="bg-slate-200">
+                        <div class="limited-text">
+                            {{ nextStatementDescription ?? "[Program slut]" }}
+                        </div>
+                    </v-card-text>
+                </v-card>
+            </v-col>
+        </v-row>
+
+        <h3 v-if="functionDescription" class="underline">Kontekst</h3>
         <p id="function" class="text-body-1 mb-4">{{ functionDescription }}</p>
-        <p id="statement" class="text-body-1 mb-4">{{ statementDescription }} </p>
+
+        <h3 v-if="expressionDescription" class="underline" >Trin for trin</h3>
         <p id="expression" class="text-body-1 mb-4">{{ expressionDescription }}</p>
         <div id="reference" v-if="references?.length">
             <span>Læs mere: </span>
@@ -32,8 +71,14 @@ export default {
         functionDescription() {
             return this.descriptions?.function;
         },
+        previousStatementDescription() {
+            return this.descriptions?.previousStatement;
+        },
         statementDescription() {
             return this.descriptions?.statement;
+        },
+        nextStatementDescription() {
+            return this.descriptions?.nextStatement;
         },
         expressionDescription() {
             return this.descriptions?.expression;
@@ -44,12 +89,22 @@ export default {
     },
     methods: {
         handlePreviousStatement() {
-            console.log('Previous Statement');
+            this.$emit('previous-statement-selected');
         },
         handleNextStatement() {
-            console.log('Next Statement');
+            this.$emit('next-statement-selected');
         },
     }
 }
 
 </script>
+
+<style scoped>
+    .limited-text {
+        color: rgb(148 163 184);
+        white-space: nowrap; 
+        word-break: normal; 
+        overflow: hidden; 
+        text-overflow: ellipsis;
+    }
+</style>

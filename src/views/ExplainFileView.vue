@@ -13,7 +13,12 @@
           <CodeViewer :code="content?.source ?? '// Loading code...'" @selection="handleSelection" />
         </v-col>
         <v-col cols="6">
-          <ExplanationViewer :position="position" :descriptions="descriptions" style="height: 500px;" />
+          <ExplanationViewer 
+            :position="position" 
+            :descriptions="descriptions" 
+            @previous-statement-selected="handlePreviousStatementSelected"
+            @next-statement-selected="handleNextStatementSelected"
+            style="height: 700px;" />
         </v-col>
       </v-row>
     </v-responsive>
@@ -48,10 +53,13 @@ export default {
       }
 
       const charCount = this.position;
+      const statementIndex = this.content.statements.findIndex(s => s.start <= charCount && charCount <= s.end);
 
       return {
         function: this.content.functions.find(s => s.start <= charCount && charCount <= s.end)?.description,
-        statement: this.content.statements.find(s => s.start <= charCount && charCount <= s.end)?.description,
+        previousStatement: this.content.statements[statementIndex - 1]?.description,
+        statement: this.content.statements[statementIndex]?.description,
+        nextStatement: this.content.statements[statementIndex + 1]?.description,
         expression: this.content.expressions.find(e => e.start <= charCount && charCount <= e.end)?.description,
         references: this.content.references.filter(r => r.start <= charCount && charCount <= r.end),
       };
@@ -70,7 +78,22 @@ export default {
     },
     handleSelection(newPosition) {
       this.position = newPosition;
-    }
+    },
+    handlePreviousStatementSelected() {
+      const charCount = this.position;
+      const statementIndex = this.content.statements.findIndex(s => s.start <= charCount && charCount <= s.end);
+      
+      if (statementIndex > 0)
+        this.position = this.content.statements[statementIndex - 1]?.start ?? 0;
+    },
+    handleNextStatementSelected() {
+      const charCount = this.position;
+      const statementIndex = this.content.statements.findIndex(s => s.start <= charCount && charCount <= s.end);
+      
+      if (statementIndex < this.content.statements.length - 1)
+        this.position = this.content.statements[statementIndex + 1]?.start ?? 0;
+    },
+    
   },
 };
 </script>
