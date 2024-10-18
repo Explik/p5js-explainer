@@ -11,7 +11,7 @@
 
                         <v-divider></v-divider>
 
-                        <v-list v-model:opened="open">
+                        <v-list v-if="!loading" v-model:opened="open">
                             <v-list-group v-for="category in categories" :value="category.id">
                                 <template v-slot:activator="{ props }">
                                     <v-list-item v-bind="props" prepend-icon="mdi-folder"
@@ -23,6 +23,9 @@
                                 </v-list-item>
                             </v-list-group>
                         </v-list>
+                        <v-row v-else justify="center" align="center" class="fill-height">
+                            <v-progress-circular indeterminate color="grey"></v-progress-circular>
+                        </v-row>
                     </v-card>
                 </v-col>
             </v-row>
@@ -34,12 +37,12 @@
 <script>
 export default {
     data: () => ({
+        loading: true,
         open: [],
         categories: [
             {
-                id: "category-1",
-                name: "Category 1",
-                icon: "mdi-weight-bathroom",
+                id: "default",
+                name: "Alle",
                 items: [
                     { name: "BMI Calculator", icon: "mdi-plus", path: "bmi-calculator" },
                     { name: "Item #2", icon: "mdi-eye", path: "" },
@@ -49,7 +52,21 @@ export default {
             },
         ],
     }),
+    mounted() {
+        this.loadContent();
+    },
     methods: {
+        async loadContent() {
+            this.loading = true;
+
+            const response = await fetch(`/index.json`);
+            const responseData = await response.json();
+
+            const category = this.categories.find(c => c.id === "default");
+            category.items = responseData.map(itemName => ({ name: itemName, path: itemName.split(".")[0], icon: 'mdi-file' }));
+
+            this.loading = false;
+        },
         handleSelection(item) {
             this.$router.push({
                 name: "explain",
