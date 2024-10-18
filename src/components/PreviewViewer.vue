@@ -1,6 +1,6 @@
 <template>
   <v-card>
-      <iframe ref="iframe" :srcdoc="iframeContent" @load="onIframeLoad"></iframe>
+    <iframe ref="iframe" :srcdoc="iframeContent" @load="onIframeLoad"></iframe>
   </v-card>
 </template>
 
@@ -18,11 +18,28 @@ export default {
       htmlContent: '<h1>Hello World</h1>',
       cssContent: 'h1 { color: red; }',
       jsContent1: `
-          window.addEventListener('message', function(event) {
-            if (event.data === 'requestData') {
-              window.parent.postMessage('responseData', '*');
-            }
-          });
+          const originalLog = console.log;
+          const originalError = console.error;
+          
+          console.log = function(...args) {
+            setTimeout(() => window.parent.postMessage({
+              type: 'log',
+              method: 'console.log',
+              message: args
+            }, '*'), 0);
+
+            originalLog.apply(console, args);
+          };
+
+          console.error = function(...args) {
+            setTimeout(() => window.parent.postMessage({
+              type: 'log',
+              method: 'console.error',
+              message: args
+            }, '*'), 0);
+
+            originalError.apply(console, args);
+          }
         `
     };
   },
@@ -51,8 +68,8 @@ export default {
       window.addEventListener('message', this.handleIframeMessage);
     },
     handleIframeMessage(event) {
-      if (event.data === 'responseData') {
-        console.log('Received data from iframe:', event.data);
+      if (event.data?.type === 'log') {
+        console.log("console.log in Iframe:", ...event.data.message);
       }
     }
   },
