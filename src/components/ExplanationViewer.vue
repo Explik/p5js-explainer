@@ -1,6 +1,6 @@
 <template>
     <v-card class="px-6 py-6 overflow-y-scroll">
-        <v-row style="min-height: 280px;">
+        <v-row>
             <v-col cols="2" class="d-flex flex-column align-center justify-center">
                 <v-btn icon class="w-full mb-4" @click="handlePreviousStatement">
                     <v-icon>mdi-arrow-up</v-icon>
@@ -106,5 +106,6 @@ export default {
         word-break: normal; 
         overflow: hidden; 
         text-overflow: ellipsis;
+        width: 97%;
     }
 </style>

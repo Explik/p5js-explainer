@@ -13,12 +13,26 @@
           <CodeViewer :code="content?.source ?? '// Loading code...'" @selection="handleSelection" />
         </v-col>
         <v-col cols="6">
-          <ExplanationViewer 
-            :position="position" 
-            :descriptions="descriptions" 
-            @previous-statement-selected="handlePreviousStatementSelected"
-            @next-statement-selected="handleNextStatementSelected"
-            style="height: 700px;" />
+          <v-tabs v-model="tab" align-tabs="left">
+            <v-tab :value="1">Kør</v-tab>
+            <v-tab :value="2">Forklar</v-tab>
+          </v-tabs>
+          <v-tabs-window v-model="tab">
+            <v-tabs-window-item :value="1">
+              <PreviewViewer 
+                :code="content?.source"
+                style="height: 600px;"
+              />
+            </v-tabs-window-item>
+            <v-tabs-window-item :value="2">
+              <ExplanationViewer 
+                :position="position" 
+                :descriptions="descriptions" 
+                @previous-statement-selected="handlePreviousStatementSelected"
+                @next-statement-selected="handleNextStatementSelected"
+                style="height: 600px;" />
+            </v-tabs-window-item>
+          </v-tabs-window>
         </v-col>
       </v-row>
     </v-responsive>
@@ -29,12 +43,14 @@
 <script>
 import CodeViewer from '@/components/CodeViewer.vue';
 import ExplanationViewer from '@/components/ExplanationViewer.vue';
+import PreviewViewer from '@/components/PreviewViewer.vue';
 
 export default {
   name: "Details",
   props: ['id'],
   data: () => ({
     //code: "//Loading code...",
+    tab: null,
     position: 0,
     content: null,
   }),
