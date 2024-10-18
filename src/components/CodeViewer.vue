@@ -15,7 +15,7 @@
         }),
         mounted() {
             this.editor = ace.edit(this.$refs.editor);
-            this.editor.setTheme("ace/theme/monokai");
+            this.editor.setTheme("ace/theme/xcode");
             this.editor.setShowPrintMargin(false);
             this.editor.setReadOnly(true);
             this.editor.session.setMode("ace/mode/javascript");
@@ -25,7 +25,8 @@
         },
         watch: {
             code() {
-                this.editor.setValue(this.code);
+                this.editor.setValue(this.code, 0);
+                this.editor.clearSelection();
             }
         },
         methods: {
