@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { parse } from 'acorn';
-import { firstStatementPrompt, subsequentStatementPrompt, expressionPrompt, classificationPrompt, functionPrompt } from './prompts.js';
+import { firstStatementPrompt, subsequentStatementPrompt, firstExpressionPrompt, classificationPrompt, functionPrompt, subsequentExpressionPrompt } from './prompts.js';
 import { fetchPromptAnswerAsync, fetchPromptAnswersAsync, generateFileIfNonExistentAsync, generatePrompt, generatePrompts, compoundSyntaxNodes, extractStatements, generateSource, extractExpressions, memberSyntaxNodes, extractFunctionDeclarations, getFileNames, getFilePaths } from './utils.js';
 
 const inputDirectory = 'data';
@@ -80,17 +80,18 @@ for (let inputFileName of getFileNames(inputDirectory)) {
             if (expressions.length <= 2)
                 continue;
 
-            const promptListElements = expressions.map(e => generateSource(sourceCode, e));
-            const promptList = "- " + promptListElements.join('\n- ');
-            const prompt = generatePrompt(expressionPrompt, promptList);
-            const promptAnswer = await fetchPromptAnswerAsync(prompt);
+            const expressionsAsPrompts = expressions.map(e => generateSource(sourceCode, e));
+            const prompts = generatePrompts(firstExpressionPrompt, subsequentExpressionPrompt, expressionsAsPrompts);
+            const promptAnswers = await fetchPromptAnswersAsync(prompts);
 
-            codeDescriptions.push({
-                type: "expression",
-                start: statement.start,
-                end: statement.end,
-                description: promptAnswer
-            });
+            for (let i = 0; i < expressions.length; i++) {
+                codeDescriptions.push({
+                    type: "expression",
+                    start: statement.start,
+                    end: statement.end,
+                    description: promptAnswers[i]
+                });
+            }            
         }
         return JSON.stringify(codeDescriptions, null, 2);
     });

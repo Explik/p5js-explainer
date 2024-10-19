@@ -63,7 +63,7 @@ export default {
         return {
           function: 'Loading...',
           statement: 'Loading...',
-          expression: 'Loading...',
+          expressions: [],
           references: [],
         };
       }
@@ -76,7 +76,7 @@ export default {
         previousStatement: this.content.statements[statementIndex - 1]?.description,
         statement: this.content.statements[statementIndex]?.description,
         nextStatement: this.content.statements[statementIndex + 1]?.description,
-        expression: this.content.expressions.find(e => e.start <= charCount && charCount <= e.end)?.description,
+        expressions: this.content.expressions.filter(e => e.start <= charCount && charCount <= e.end).map(e => e.description),
         references: this.content.references.filter(r => r.start <= charCount && charCount <= r.end),
       };
     },

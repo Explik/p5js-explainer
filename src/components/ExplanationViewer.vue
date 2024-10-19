@@ -41,8 +41,16 @@
         <h3 v-if="functionDescription" class="underline">Kontekst</h3>
         <p id="function" class="text-body-1 mb-4">{{ functionDescription }}</p>
 
-        <h3 v-if="expressionDescription" class="underline" >Trin for trin</h3>
-        <p id="expression" class="text-body-1 mb-4">{{ expressionDescription }}</p>
+        <div id="expressions" v-if="expressionsDescription?.length">
+            <h3 class="underline" >Trin for trin</h3>
+            <v-card v-for="description in expressionsDescription" class="mb-4">
+                <v-card-text>
+                    {{ description }}
+                </v-card-text>
+                
+            </v-card>
+        </div>
+
         <div id="reference" v-if="references?.length">
             <span>Læs mere: </span>
             <span v-for="(reference, i) in references">
@@ -80,8 +88,8 @@ export default {
         nextStatementDescription() {
             return this.descriptions?.nextStatement;
         },
-        expressionDescription() {
-            return this.descriptions?.expression;
+        expressionsDescription() {
+            return this.descriptions?.expressions;
         },
         references() {
             return this.descriptions?.references;
