@@ -10,7 +10,10 @@
       </v-row>
       <v-row>
         <v-col cols="6">
-          <CodeViewer :code="content?.source ?? '// Loading code...'" @selection="handleSelection" />
+          <CodeViewer 
+            :code="content?.source ?? '// Loading code...'" 
+            :codeHighlights="highlights"
+            @selection="handleSelection" />
         </v-col>
         <v-col cols="6">
           <v-tabs v-model="tab" align-tabs="left">
@@ -50,7 +53,7 @@ export default {
   props: ['id'],
   data: () => ({
     //code: "//Loading code...",
-    tab: null,
+    tab: 2,
     position: 0,
     content: null,
   }),
@@ -80,6 +83,22 @@ export default {
         references: this.content.references.filter(r => r.start <= charCount && charCount <= r.end),
       };
     },
+    highlights() {
+      if (!this.content) {
+        return [];
+      }
+      const charCount = this.position;
+
+      return this.content.statements
+        .map(s => {
+          const isPrimary = s.start <= charCount && charCount <= s.end;
+          return {
+            start: s.start,
+            end: s.end - 1,
+            type: isPrimary ? 'primary' : 'secondary',
+          };
+        });
+    }
   },
   mounted() {
     this.loadContent();
@@ -87,7 +106,6 @@ export default {
   methods: {
     async loadContent() {
       const response = await fetch(`/${this.id}.json`);
-      console.log(response);
       const responseData = await response.json();
 
       this.content = responseData;
