@@ -1,33 +1,22 @@
 <template>
     <v-card class="px-6 py-6 overflow-y-scroll">
-        <v-row>
-            <v-col cols="2" class="d-flex flex-column align-center justify-center">
-                <v-btn icon class="w-full mb-4" @click="handlePreviousStatement">
-                    <v-icon>mdi-arrow-up</v-icon>
-                </v-btn>
-
-                <!--<v-btn icon class="w-full mt-4 mb-4">
-                    <v-icon>mdi-circle</v-icon>
-                </v-btn>-->
-
-                <v-btn icon class="w-full" @click="handleNextStatement">
-                    <v-icon>mdi-arrow-down</v-icon>
-                </v-btn>
-            </v-col>
-
-            <v-col cols="10" class="d-flex flex-column  justify-center">
-                <v-card outlined>
+        <h2 class="mb-2">Forklaring af "{{formattedStatement}}"</h2>
+        <div id="statements" class="mb-8">
+            <div class="mb-2">
+                <v-card>
                     <v-card-text>
                         <div class="limited-text">
-                            {{ previousStatementDescription ?? "[Program start]"}}
+                            {{ previousStatementDescription ?? "[Program start]" }}
                         </div>
                     </v-card-text>
                 </v-card>
-                <v-card class="mt-4 mb-4">
-                    <v-card-text class="bg-slate-200">
+
+                <v-card id="current-statement-card" class="mt-4 mb-4 d-flex align-center justify-center">
+                    <v-card-text class="bg-slate-200 mt-auto mb-auto">
                         {{ statementDescription }}
                     </v-card-text>
                 </v-card>
+
                 <v-card>
                     <v-card-text class="bg-slate-200">
                         <div class="limited-text">
@@ -35,24 +24,40 @@
                         </div>
                     </v-card-text>
                 </v-card>
-            </v-col>
-        </v-row>
+            </div>
 
-        <h3 v-if="functionDescription" class="underline">Kontekst</h3>
-        <p id="function" class="text-body-1 mb-4">{{ functionDescription }}</p>
+            <div>
+                <v-btn icon @click="handlePreviousStatement" class="mr-2">
+                    <v-icon>mdi-arrow-left</v-icon>
+                </v-btn>
 
-        <div id="expressions" v-if="expressionsDescription?.length">
-            <h3 class="underline" >Trin for trin</h3>
+                <v-btn icon @click="handleNextStatement">
+                    <v-icon>mdi-arrow-right</v-icon>
+                </v-btn>
+            </div>
+        </div>
+
+        <div v-if="functionDescription" class="mb-8">
+            <h3 class="underline">Kontekst</h3>
+            <v-card>
+                <v-card-text>
+                    {{ functionDescription }}
+                </v-card-text>
+            </v-card>
+        </div>
+
+        <div id="expressions" v-if="expressionsDescription?.length" class="mb-8">
+            <h3 class="underline">Trin for trin</h3>
             <v-card v-for="description in expressionsDescription" class="mb-4">
                 <v-card-text>
                     {{ description }}
                 </v-card-text>
-                
+
             </v-card>
         </div>
 
         <div id="reference" v-if="references?.length">
-            <h3 class="underline" >Referencer</h3>
+            <h3 class="underline">Referencer</h3>
             <span v-for="(reference, i) in references">
                 <a :href="reference.link">
                     {{ reference.text }}
@@ -71,12 +76,23 @@ export default {
             type: Number,
             required: false
         },
+        statement: {
+            type: String, 
+            required: false
+        },
         descriptions: {
             type: Object,
             required: true
         }
     },
     computed: {
+        formattedStatement() {
+            if (!this.statement)
+                return "????"
+
+            const maxLength = 25; 
+            return (this.statement.length > maxLength - 3) ? this.statement.substring(0, maxLength) + "..." : this.statement;
+        },
         functionDescription() {
             return this.descriptions?.function;
         },
@@ -109,12 +125,16 @@ export default {
 </script>
 
 <style scoped>
-    .limited-text {
-        color: rgb(148 163 184);
-        white-space: nowrap; 
-        word-break: normal; 
-        overflow: hidden; 
-        text-overflow: ellipsis;
-        width: 97%;
-    }
+.limited-text {
+    color: rgb(148 163 184);
+    white-space: nowrap;
+    word-break: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 97%;
+}
+
+#current-statement-card {
+    min-height: 120px;
+}
 </style>

@@ -30,6 +30,7 @@
             <v-tabs-window-item :value="2">
               <ExplanationViewer 
                 :position="position" 
+                :statement="statement"
                 :descriptions="descriptions" 
                 @previous-statement-selected="handlePreviousStatementSelected"
                 @next-statement-selected="handleNextStatementSelected"
@@ -60,6 +61,12 @@ export default {
   computed: {
     id() {
       return this.$route.params.id;
+    },
+    statement() {
+      const charCount = this.position;
+      const statement = this.content?.statements.find(s => s.start <= charCount && charCount <= s.end);
+
+      return (statement && this.content) ? this.content.source.substring(statement.start, statement.end) : undefined;
     },
     descriptions() {
       if (!this.content) {
