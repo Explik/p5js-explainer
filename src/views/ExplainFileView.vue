@@ -15,7 +15,7 @@
             :codeHighlights="highlights"
             @selection="handleSelection" />
         </v-col>
-        <v-col cols="6">
+        <v-col cols="6" style="margin-top: -48px">
           <v-tabs v-model="tab" align-tabs="left">
             <v-tab :value="1">Kør</v-tab>
             <v-tab :value="2">Forklar</v-tab>
@@ -65,8 +65,9 @@ export default {
     statement() {
       const charCount = this.position;
       const statement = this.content?.statements.find(s => s.start <= charCount && charCount <= s.end);
+      const code = this.content?.source;
 
-      return (statement && this.content) ? this.content.source.substring(statement.start, statement.end) : undefined;
+      return (statement && code) ? code.substring(statement.start, statement.end) : undefined;
     },
     descriptions() {
       if (!this.content) {

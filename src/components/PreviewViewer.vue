@@ -1,5 +1,5 @@
 <template>
-  <v-card>
+  <v-card class="px-2 py-2">
     <iframe ref="iframe" :srcdoc="iframeContent" @load="onIframeLoad"></iframe>
   </v-card>
 </template>
