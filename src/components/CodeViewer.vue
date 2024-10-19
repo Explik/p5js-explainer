@@ -67,14 +67,26 @@ export default {
             this.$emit('selection', position);
         },
         convertCoordinatesToPosition(row, column) {
-            const lines = this.editor.session.getLines(0, row);
+            const content = this.editor.getValue();
+            let currentRow = 0;
+            let currentColumn = 0;
+            let position = 0;
 
-            let charCount = 0;
-            for (let i = 0; i < lines.length - 1; i++)
-                charCount += lines[i].length + 1; // +1 for the newline character
-            charCount += column;
+            for (let i = 0; i < content.length; i++) {
+                if (currentRow === row && currentColumn === column) {
+                    return position;
+                }
+                if (content[i] === '\n') {
+                    currentRow++;
+                    currentColumn = 0;
+                } else {
+                    currentColumn++;
+                }
+                position++;
+            }
 
-            return charCount;
+            // If coordinates are at the end of the content
+            return position;
         },
         convertPositionToCoordinates(position) {
             const content = this.editor.getValue();
@@ -112,10 +124,12 @@ export default {
 .highlight-primary {
     position: absolute;
     background-color: rgba(124, 192, 255, 0.5);
+    cursor: pointer;
 }
 
 .highlight-secondary {
     position: absolute;
     background-color: rgba(124, 192, 255, 0.1);
+    cursor: pointer;
 }
 </style>
