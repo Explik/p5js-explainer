@@ -91,7 +91,7 @@ export default {
                 return "????"
 
             const maxLength = 25; 
-            return (this.statement.length > maxLength - 3) ? this.statement.substring(0, maxLength) + "..." : this.statement;
+            return (this.statement.length > maxLength - 3) ? this.statement.substring(0, maxLength - 3) + "..." : this.statement;
         },
         functionDescription() {
             return this.descriptions?.function;
