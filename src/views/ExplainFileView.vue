@@ -123,6 +123,7 @@ export default {
       const responseData = await response.json();
 
       this.content = responseData;
+      this.position = this.content?.statements[0]?.start ?? 0;
     },
     handleSelection(newPosition) {
       this.position = newPosition;
