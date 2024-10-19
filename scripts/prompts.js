@@ -22,11 +22,11 @@ Beskriv: {0}
 
 export const subsequentStatementPrompt = `Beskriv: {0}`.trim();
 
-export const expressionPrompt = `
-Du er en programmerings underviser på et kode kursus for ikke-tekniske universitetsstuderende uden programmeringserfaring. Du skal beskrive hver enkelt expression fra et statement fra  til en guide omkring p5.js. Undgå gentagelser. 
-Beskriv meget kort og uden indledning: 
-{0}
+export const firstExpressionPrompt = `
+Du er en programmerings underviser på et kode kursus for ikke-tekniske universitetsstuderende uden programmeringserfaring. Du skal beskrive hver enkelt expression fra et statement fra til en guide omkring p5.js. Du vil få en expression ad gangen, som skal beskrives kort og præcist uden gentagelser. Færdiggør nedenståede sætning: {0} betyder, at
 `.trim();
+
+export const subsequentExpressionPrompt = `Færdiggør nedenståede sætning: {0} betyder, at `.trim();
 
 export const classificationPrompt = `
 Classify the used syntax in the following code sample: 
