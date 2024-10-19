@@ -140,6 +140,8 @@ export default {
     border-radius: 4px;
 }
 
+#editor .ace_marker-layer .ace_bracket { display: none }
+
 .highlight-primary {
     position: absolute;
     background-color: rgba(124, 192, 255, 0.5);
