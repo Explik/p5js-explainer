@@ -52,12 +52,13 @@
         </div>
 
         <div id="reference" v-if="references?.length">
-            <span>Læs mere: </span>
+            <h3 class="underline" >Referencer</h3>
             <span v-for="(reference, i) in references">
                 <a :href="reference.link">
                     {{ reference.text }}
                 </a>
-                <span v-if="i < references.length - 1">, </span>
+                <span v-if="i < references.length - 2">, </span>
+                <span v-if="i == references.length - 2"> & </span>
             </span>
         </div>
     </v-card>
