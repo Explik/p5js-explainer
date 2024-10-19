@@ -12,7 +12,8 @@
         <v-col cols="6">
           <CodeViewer 
             :code="content?.source ?? '// Loading code...'" 
-            :codeHighlights="highlights"
+            :clickableRanges="clickableRanges"
+            :highlightedRanges="highlightedRanges"
             @selection="handleSelection" />
         </v-col>
         <v-col cols="6" style="margin-top: -48px">
@@ -91,19 +92,24 @@ export default {
         references: this.content.references.filter(r => r.start <= charCount && charCount <= r.end),
       };
     },
-    highlights() {
-      if (!this.content) {
+    highlightedRanges() {
+      if (!this.content)
         return [];
-      }
+      
       const charCount = this.position;
+      const currentStatement = this.content.statements.find(s => s.start <= charCount && charCount <= s.end);
 
+      return currentStatement ? [{...currentStatement, end: currentStatement.end - 1}] : [];
+    },
+    clickableRanges() {
+      if (!this.content)
+        return [];
+      
       return this.content.statements
         .map(s => {
-          const isPrimary = s.start <= charCount && charCount <= s.end;
           return {
             start: s.start,
             end: s.end - 1,
-            type: isPrimary ? 'primary' : 'secondary',
           };
         });
     }
