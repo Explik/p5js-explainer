@@ -27,11 +27,11 @@
             </div>
 
             <div>
-                <v-btn icon @click="handlePreviousStatement" class="mr-2">
+                <v-btn icon :disabled="!previousStatementDescription" @click="handlePreviousStatement" class="mr-2">
                     <v-icon>mdi-arrow-left</v-icon>
                 </v-btn>
 
-                <v-btn icon @click="handleNextStatement">
+                <v-btn icon :disabled="!nextStatementDescription" @click="handleNextStatement">
                     <v-icon>mdi-arrow-right</v-icon>
                 </v-btn>
             </div>
