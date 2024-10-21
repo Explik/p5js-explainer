@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { parse } from 'acorn';
 import { firstStatementPrompt, subsequentStatementPrompt, firstExpressionPrompt, classificationPrompt, functionPrompt, subsequentExpressionPrompt } from './prompts.js';
-import { fetchPromptAnswerAsync, fetchPromptAnswersAsync, generateFileIfNonExistentAsync, generatePrompt, generatePrompts, compoundSyntaxNodes, extractStatements, generateSource, extractExpressions, memberSyntaxNodes, extractFunctionDeclarations, getFileNames, getFilePaths } from './utils.js';
+import { fetchPromptAnswerAsync, fetchPromptAnswersAsync, generateFileIfNonExistentAsync, generatePrompt, generatePrompts, compoundSyntaxNodes, extractStatements, generateSource, extractExpressions, memberSyntaxNodes, extractFunctionDeclarations, getFileNames, getFilePaths } from '../shared/utils.js';
 
 const inputDirectory = 'data';
 const referenceDirectory = 'data/references';
