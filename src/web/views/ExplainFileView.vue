@@ -46,12 +46,13 @@
 </template>
 
 <script>
-import CodeViewer from '@/components/CodeViewer.vue';
-import ExplanationViewer from '@/components/ExplanationViewer.vue';
-import PreviewViewer from '@/components/PreviewViewer.vue';
+import CodeViewer from '../components/CodeViewer.vue';
+import ExplanationViewer from '../components/ExplanationViewer.vue';
+import PreviewViewer from '../components/PreviewViewer.vue';
 
 export default {
   name: "Details",
+  components: { CodeViewer, ExplanationViewer, PreviewViewer },
   props: ['id'],
   data: () => ({
     //code: "//Loading code...",
