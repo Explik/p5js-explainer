@@ -14,12 +14,11 @@
                 <h1>Indhold</h1>
                 <v-text-field v-model="fileName" label="Fil navn" required></v-text-field>
 
-                <CodeEditor v-model="fileContent" @update:model-value="handleCodeUpdate()"></CodeEditor>
-                
-                <CodeViewer v-if="codeRanges.length" :code="fileContent" :highlighted-ranges="codeRanges"></CodeViewer>
-                <v-row v-else justify="center" align="center" class="fill-height">
-                    <v-progress-circular indeterminate color="grey" style="height: 100px;"></v-progress-circular>
-                </v-row>
+                <CodeEditor 
+                    v-model="fileContent" 
+                    @update:model-value="handleCodeUpdate()"
+                    :highlighted-ranges="codeRanges">
+                </CodeEditor>
                 
                 <div class="float-right">
                     <v-btn @click="handleRangesUpdate()">Gem og videre</v-btn>
@@ -29,7 +28,7 @@
             <v-tabs-window-item value="comments">
                 <h1>Forklaringer</h1>
 
-                <div v-for="(comment, index) in codeComments" :key="index" class="mb-4">
+                <div v-if="codeComments.length"  v-for="(comment, index) in codeComments" :key="index" class="mb-4">
                     <v-card :class="{updated: comment.updated}">
                         <v-card-text>
                             {{ this.code.slice(comment.start, comment.end) }} 
@@ -38,6 +37,11 @@
                         </v-card-text>
                     </v-card>
                 </div>  
+                <div v-else>
+                    <v-row justify="center" align="center" class="fill-height">
+                        <v-progress-circular indeterminate color="grey" style="height: 100px;"></v-progress-circular>
+                    </v-row>
+                </div>
 
                 <div class="float-right">
                     <v-btn @click="handleCommentsUpdate()">Gem og videre</v-btn>
@@ -47,7 +51,7 @@
             <v-tabs-window-item value="references">
                 <h1>Referencer</h1>
 
-                <div v-for="(referenceGroup, index) in codeReferences" :key="index" class="mb-4">
+                <div v-if="codeReferences.length" v-for="(referenceGroup, index) in codeReferences" :key="index" class="mb-4">
                     <v-card>
                         <v-card-text>
                             {{ this.code.slice(referenceGroup.start, referenceGroup.end) }} 
@@ -61,6 +65,11 @@
                         </v-card-text>
                     </v-card>
                 </div>
+                <div v-else>
+                    <v-row justify="center" align="center" class="fill-height">
+                        <v-progress-circular indeterminate color="grey" style="height: 100px;"></v-progress-circular>
+                    </v-row>
+                </div>
 
                 <div class="float-right">
                     <v-btn @click="handleReferencesUpdate()">Gem og videre</v-btn>
@@ -72,11 +81,10 @@
 
 <script>
 import CodeEditor from './CodeEditor.vue';
-import CodeViewer from './CodeViewer.vue';
 
 export default {
     name: "ExplanationEditor",
-    components: { CodeEditor, CodeViewer },
+    components: { CodeEditor },
     props: {
         prompts: {
             type: Array,

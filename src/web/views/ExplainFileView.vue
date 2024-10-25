@@ -10,11 +10,12 @@
       </v-row>
       <v-row>
         <v-col cols="6">
-          <CodeViewer 
-            :code="content?.source ?? '// Loading code...'" 
+          <CodeEditor 
+            v-model="content.source" 
             :clickableRanges="clickableRanges"
             :highlightedRanges="highlightedRanges"
-            @selection="handleSelection" />
+            @selection="handleSelection" 
+            non-editable />
         </v-col>
         <v-col cols="6" style="margin-top: -48px">
           <v-tabs v-model="tab" align-tabs="left">
@@ -46,19 +47,24 @@
 </template>
 
 <script>
-import CodeViewer from '../components/CodeViewer.vue';
+import CodeEditor from '../components/CodeEditor.vue';
 import ExplanationViewer from '../components/ExplanationViewer.vue';
 import PreviewViewer from '../components/PreviewViewer.vue';
 
 export default {
   name: "Details",
-  components: { CodeViewer, ExplanationViewer, PreviewViewer },
+  components: { CodeEditor, ExplanationViewer, PreviewViewer },
   props: ['id'],
   data: () => ({
-    //code: "//Loading code...",
     tab: 2,
     position: 0,
-    content: null,
+    content: {
+      source: "// Loading...",
+      statements: [],
+      functions: [],
+      expressions: [],
+      references: [],
+    },
   }),
   computed: {
     id() {
