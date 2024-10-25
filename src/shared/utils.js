@@ -25,12 +25,12 @@ export function generatePrompts(firstPrompt, subsequentPrompt, placeholders) {
     });
 }
 
-export async function fetchPromptAnswerAsync(prompt) {
-    const promptAnswers = await fetchPromptAnswersAsync([prompt]);
+export async function fetchPromptAnswerAsync(model, prompt) {
+    const promptAnswers = await fetchPromptAnswersAsync(model, [prompt]);
     return promptAnswers[0];
 }
 
-export async function fetchPromptAnswersAsync(prompts) {
+export async function fetchPromptAnswersAsync(model, prompts) {
     const messages = []; // Initialize conversation messages array
     const responses = []; // Array to hold all responses
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -41,7 +41,7 @@ export async function fetchPromptAnswersAsync(prompts) {
 
         try {
             const response = await openai.chat.completions.create({
-                model: process.env.OPENAI_API_MODEL,
+                model: model,
                 messages: messages,
                 temperature: 1,
                 max_tokens: 2048,

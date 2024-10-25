@@ -23,11 +23,34 @@
             <template v-slot:item.3>
                 <h3 class="text-h6">{{ stepTitles[2] }}</h3>
                 <br>
+                <div v-for="(comment, index) in codeComments" :key="index" class="mb-4">
+                    <v-card :class="{updated: comment.updated}">
+                        <v-card-text>
+                            {{ this.code.slice(comment.start, comment.end) }} 
+                            <br> 
+                            <v-textarea v-model="comment.description" @update:model-value="comment.updated = true" label="Beskrivelse" rows="1"></v-textarea>
+                        </v-card-text>
+                    </v-card>
+                </div>  
             </template>
 
             <template v-slot:item.4>
                 <h3 class="text-h6">{{ stepTitles[3] }}</h3>
                 <br>
+                <div v-for="(referenceGroup, index) in codeReferences" :key="index" class="mb-4">
+                    <v-card>
+                        <v-card-text>
+                            {{ this.code.slice(referenceGroup.start, referenceGroup.end) }} 
+                            <br>
+                            <v-chip 
+                                v-for="reference in referenceGroup.references" 
+                                @click:close="handleReferenceDeleted(referenceGroup, reference)"
+                                class="mr-2" 
+                                outlined
+                                closable="">{{ reference.text }}</v-chip>
+                        </v-card-text>
+                    </v-card>
+                </div>
             </template>
 
             <template v-slot:item.5>
@@ -56,12 +79,27 @@ export default {
             required: false,
             default: () => []
         },
+        isLoading: {
+            type: Boolean,
+            required: false,
+            default: false
+        },
         code: {
             type: String,
             required: false,
             default: ""
         },
         codeRanges: {
+            type: Array,
+            required: false,
+            default: () => []
+        },
+        codeComments: {
+            type: Array,
+            required: false,
+            default: () => []
+        },
+        codeReferences: {
             type: Array,
             required: false,
             default: () => []
@@ -78,22 +116,6 @@ export default {
         
 
         isLoading: true,
-
-
-        shipping: 0,
-        
-        products: [
-            {
-                name: 'Product 1',
-                price: 10,
-                quantity: 2,
-            },
-            {
-                name: 'Product 2',
-                price: 15,
-                quantity: 10,
-            },
-        ],
         };
     },
     computed: {
@@ -110,8 +132,27 @@ export default {
                 case 2: 
                     this.$emit('file-content-update', this.fileContent);
                     break;
+                case 3:
+                    this.$emit('file-ranges-update', this.codeRanges);
+                    break;
+                case 4:
+                    this.$emit('file-comments-update', this.codeComments);
+                    break;
+                case 5: 
+                    this.$emit('file-references-update', this.codeReferences);
+                    break;file-references-update
             }
+        },
+        handleReferenceDeleted(referenceGroup, reference) {
+            referenceGroup.references = referenceGroup.references.filter(r => r !== reference);
+            referenceGroup.updated = true;
         }
     }
 }
 </script>
+
+<style>
+    .updated {
+        border-left: 4px solid lightblue;
+    }
+</style>

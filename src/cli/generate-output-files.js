@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { parse } from 'acorn';
-import { firstStatementPrompt, subsequentStatementPrompt, firstExpressionPrompt, classificationPrompt, functionPrompt, subsequentExpressionPrompt } from './prompts.js';
+import { firstStatementPrompt, subsequentStatementPrompt, firstExpressionPrompt, classificationPrompt, functionPrompt, subsequentExpressionPrompt } from '../shared/prompts.js';
 import { fetchPromptAnswerAsync, fetchPromptAnswersAsync, generateFileIfNonExistentAsync, generatePrompt, generatePrompts, compoundSyntaxNodes, extractStatements, generateSource, extractExpressions, memberSyntaxNodes, extractFunctionDeclarations, getFileNames, getFilePaths } from '../shared/utils.js';
 
 const inputDirectory = 'data';
@@ -38,8 +38,8 @@ for (let inputFileName of getFileNames(inputDirectory)) {
 
         for (let node of extractFunctionDeclarations(syntaxTree)) {
             const nodeSource = generateSource(sourceCode, node);
-            const prompt = generatePrompt(functionPrompt, nodeSource);
-            const promptAnswer = await fetchPromptAnswerAsync(prompt);
+            const prompt = generatePrompt(functionPromnewExplanationpt, nodeSource);
+            const promptAnswer = await fetchPromptAnswerAsync(process.env.OPENAI_API_MODEL_LARGE, prompt);
 
             codeReferences.push({
                 type: "function",
@@ -55,7 +55,7 @@ for (let inputFileName of getFileNames(inputDirectory)) {
     await generateFileIfNonExistentAsync(statementFilePath, async () => {
         const statementsAsStrings = statements.map(s => generateSource(sourceCode, s));
         const statementsAsPrompts = generatePrompts(firstStatementPrompt, subsequentStatementPrompt, statementsAsStrings);
-        const statementsAsPromptAnswers = await fetchPromptAnswersAsync(statementsAsPrompts);
+        const statementsAsPromptAnswers = await fetchPromptAnswersAsync(process.env.OPENAI_API_MODEL_LARGE, statementsAsPrompts);
 
         const codeDescriptions = [];
         for (let i = 0; i < statements.length; i++) {
@@ -82,7 +82,7 @@ for (let inputFileName of getFileNames(inputDirectory)) {
 
             const expressionsAsPrompts = expressions.map(e => generateSource(sourceCode, e));
             const prompts = generatePrompts(firstExpressionPrompt, subsequentExpressionPrompt, expressionsAsPrompts);
-            const promptAnswers = await fetchPromptAnswersAsync(prompts);
+            const promptAnswers = await fetchPromptAnswersAsync(process.env.OPENAI_API_MODEL_LARGE, prompts);
 
             for (let i = 0; i < expressions.length; i++) {
                 codeDescriptions.push({
@@ -105,7 +105,7 @@ for (let inputFileName of getFileNames(inputDirectory)) {
                 const statementSource = generateSource(sourceCode, statement);
                 const referenceList = referenceCollection.map(s => s.text.trim()).join(", ");
                 const prompt = classificationPrompt.replace("{0}", statementSource).replace("{1}", referenceList);
-                const promptAnswer = await fetchPromptAnswerAsync(prompt);
+                const promptAnswer = await fetchPromptAnswerAsync(process.env.OPENAI_API_MODEL_SMALL, prompt);
 
                 for (let reference of referenceCollection) {
                     const referenceText = reference.text.trim();
