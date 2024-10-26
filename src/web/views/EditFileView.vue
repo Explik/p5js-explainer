@@ -22,8 +22,7 @@
                     @update-code="handleCodeUpdate" 
                     @update-comments="handleCommentsUpdate"
                     @update-references="handleReferencesUpdate"
-                    @save="handleSave"
-                    style="height: 1000px;"/>
+                    @save="handleSave"/>
             </v-main>
         </v-responsive>
     </v-container>
