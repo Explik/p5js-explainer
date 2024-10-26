@@ -19,10 +19,10 @@
                     :codeComments="codeComments"
                     :codeReferences="codeReferences"
                     :error-message="errorMessage"
-                    @file-code-update="handleCodeUpdate"
-                    @file-content-update="handleContentUpdate" 
-                    @file-comments-update="handleCommentsUpdate"
-                    @file-references-update="handleReferencesUpdate"
+                    @update-code="handleCodeUpdate" 
+                    @update-comments="handleCommentsUpdate"
+                    @update-references="handleReferencesUpdate"
+                    @save="handleSave"
                     style="height: 1000px;"/>
             </v-main>
         </v-responsive>
@@ -40,11 +40,16 @@ import ExplanationEditor from '../components/ExplainationEditor.vue';
             hasChanges: false,
             isLoading: false,
             code: "",
-            codeRanges: [],
+            codeSnippets: [],
             codeComments: [],
             codeReferences: [],
             errorMessage: ""
         }),
+        computed: {
+            codeRanges() {
+                return this.codeSnippets?.filter(snippet => snippet.type === 'statement') ?? [];
+            }
+        },
         mounted() {
             this.fetchContent();
         },
@@ -54,11 +59,14 @@ import ExplanationEditor from '../components/ExplainationEditor.vue';
                 const response = await fetch('http://localhost:3001/explanation/' + this.id);
                 const responseData = await response.json();
                 this.code = responseData.code;
-                this.codeRanges = responseData.codeRanges;
+                this.codeSnippets = responseData.codeSnippets;
                 this.codeComments = responseData.codeComments;
                 this.codeReferences = responseData.codeReferences;
             },
             async handleCodeUpdate(newCode) {
+                if (this.code === newCode) 
+                    return;
+
                 const response = await fetch(`http://localhost:3001/breakdown-code`, {
                     method: 'POST',
                     headers: {
@@ -70,15 +78,51 @@ import ExplanationEditor from '../components/ExplainationEditor.vue';
                 const responseData = await response.json();
 
                 if (!responseData.error) {
-                    this.codeRanges = responseData.codeSnippets.filter(snippet => snippet.type === 'statement');
+                    this.codeSnippets = responseData.codeSnippets;
+                    this.codeComments = []; // Invalidates existing comments 
+                    this.codeReferences = []; // Invalidates existing references
                     this.errorMessage = undefined;
                 }
                 else this.errorMessage = responseData.error;
             },
-            async handleContentUpdate(newCode) {
-                // Update state 
-                this.hasChanges = true; 
-                this.code = newCode;
+            async handleCommentsUpdate() {
+                // Save code ranges to server
+                const explainResponse = await fetch(`http://localhost:3001/explain-code`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ code: this.code, codeSnippets: this.codeSnippets })
+                });
+                const explainResponseData = await explainResponse.json();
+
+                if (!explainResponseData.error) {
+                    this.codeComments = explainResponseData.codeComments;
+                }
+                else this.errorMessage = explainResponseData.error;
+            },
+            async handleReferencesUpdate() {
+                // Generate references 
+                const response = await fetch(`http://localhost:3001/reference-code`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ code: this.code, codeSnippets: this.codeSnippets })
+                });
+                const responseData = await response.json();
+
+                if (!responseData.error) {
+                    this.codeReferences = responseData.codeReferences;
+                }
+                else this.errorMessage = responseData.error;
+            },
+            async handleSave() {
+                const explaination = {
+                    code: this.code,
+                    codeComments: this.codeComments,
+                    codeReferences: this.codeReferences
+                };
 
                 // Save code to server
                 await fetch('http://localhost:3001/explanation/' + this.id, {
@@ -86,56 +130,9 @@ import ExplanationEditor from '../components/ExplainationEditor.vue';
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ code: this.code })
+                    body: JSON.stringify(explaination)
                 });
 
-                // Fetch code ranges from server
-                const breakdownResponse = await fetch(`http://localhost:3001/explanation/${this.id}/breakdown-code`, { method: 'POST' });
-                const breakdownResponseData = await breakdownResponse.json();
-                this.codeRanges = breakdownResponseData.codeSnippets.filter(snippet => snippet.type === 'statement');
-
-                // Save code ranges to server
-                const explainResponse = await fetch(`http://localhost:3001/explanation/${this.id}/explain-code`, { method: 'POST' });
-                const explainResponseData = await explainResponse.json();
-                this.codeComments = explainResponseData.codeComments;
-            },
-            async handleRangesUpdate() {
-                
-            },
-            async handleCommentsUpdate(newCodeComments) {
-                // Save code comments changes to server
-                if(newCodeComments.some(s => s.updated)) {
-                    this.hasChanges = true; 
-                    this.codeComments = newCodeComments.map(s => ({ ...s, updated: false }));
- 
-                    await fetch('http://localhost:3001/explanation/' + this.id, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ codeComments: this.codeComments })
-                    });
-                }
-
-                // Generate references 
-                const response = await fetch(`http://localhost:3001/explanation/${this.id}/reference-code`, { method: 'POST' });
-                const responseData = await response.json();
-                this.codeReferences = responseData.codeReferences;
-            },
-            async handleReferencesUpdate(newCodeReferences) {
-                // Save code references changes to server
-                if(newCodeReferences.some(s => s.updated)) {
-                    this.hasChanges = true; 
-                    this.codeReferences = newCodeReferences.map(s => ({ ...s, updated: false }));
-
-                    await fetch('http://localhost:3001/explanation/' + this.id, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ codeReferences: this.codeReferences })
-                    });
-                }
             }
         }
     }

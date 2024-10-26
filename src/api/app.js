@@ -32,25 +32,123 @@ app.use(cors())
 // Enables JSON parsing on body
 app.use(express.json())
 
+// Creates snippets from code
+app.post('/breakdown-code', (req, res) => {
+    try {
+        const { code } = req.body;
+        if (!code) 
+            return res.status(400).send({ error: 'Code is missing' });
+
+        const codeSnippets = breakdownCode(code);
+        return res.status(200).send({ ...req.body, codeSnippets });
+    }
+    catch (error) {
+        return res.status(400).send({ error: error.message });
+    }
+});
+
+// Creates comments from code snippets
+app.post('/explain-code', async (req, res) => {
+    const { code, codeSnippets } = req.body;
+    if (!code) 
+        return res.status(400).send({ error: 'Code is missing' });
+    if (!codeSnippets)
+        return res.status(400).send({ error: 'Code snippets is missing' });
+
+    const codeComments = [];
+
+    // Function prompts 
+    for(let snippet of codeSnippets.filter(s => s.type === "function")) {
+        const source = snippet.code ?? code.slice(snippet.start, snippet.end);
+        const prompt = generatePrompt(functionPrompt, source)
+        const promptAnswer = await fetchPromptAnswerAsync(process.env.OPENAI_API_MODEL_LARGE, prompt);
+        codeComments.push({ type: "function", start: snippet.start, end: snippet.end, description: promptAnswer });
+    }
+
+    // Statement prompts
+    const statements = codeSnippets.filter(s => s.type === "statement");
+    const statementsAsStrings = statements.map(s => s.code ?? code.slice(s.start, s.end));
+    const statementsAsPrompts = generatePrompts(firstStatementPrompt, subsequentStatementPrompt, statementsAsStrings);
+    const statementsAsPromptAnswers = await fetchPromptAnswersAsync(process.env.OPENAI_API_MODEL_LARGE, statementsAsPrompts);
+    for (let i = 0; i < statements.length; i++) {
+        const statement = statements[i];
+
+        codeComments.push({
+            type: "statement",
+            start: statement.start,
+            end: statement.end,
+            description: statementsAsPromptAnswers[i]
+        });
+    }
+
+    // Expression prompts
+    const expressionGroups = codeSnippets.filter(s => s.type === "expression-group");
+    for (let expressionGroup of expressionGroups) {
+        const expressionsAsPrompts = expressionGroup.expressions.map(e => e.code ?? code.slice(e.start, e.end));
+        const prompts = generatePrompts(firstExpressionPrompt, subsequentExpressionPrompt, expressionsAsPrompts);
+        const promptAnswers = await fetchPromptAnswersAsync(process.env.OPENAI_API_MODEL_LARGE, prompts);
+        
+        for (let i = 0; i < expressionGroup.expressions.length; i++) {
+            codeComments.push({
+                type: "expression",
+                start: expressionGroup.start,
+                end: expressionGroup.end,
+                description: promptAnswers[i]
+            });
+        }
+    }
+
+    return res.status(200).send({ ...req.body, codeComments });
+});
+
+// Creates references from code snippets
+app.post('/reference-code', async (req, res) => {
+    const { code, codeSnippets } = req.body;
+    if (!code) 
+        return res.status(400).send({ error: 'Code is missing' });
+    if (!codeSnippets)
+        return res.status(400).send({ error: 'Code snippets is missing' });
+
+    const codeReferences = [];
+
+    for (let snippet of codeSnippets.filter(s => s.type === "statement")) {
+        const referenceGroup = {
+            type: "reference-group",
+            start: snippet.start,
+            end: snippet.end,
+            references: []
+        }
+
+        for (let referenceCollection of referenceCollections) {
+            const statementSource = snippet.code ?? code.slice(snippet.start, snippet.end);
+            const referenceList = referenceCollection.map(s => s.text.trim()).join(", ");
+            const prompt = classificationPrompt.replace("{0}", statementSource).replace("{1}", referenceList);
+            const promptAnswer = await fetchPromptAnswerAsync(process.env.OPENAI_API_MODEL_SMALL, prompt);
+
+            for (let reference of referenceCollection) {
+                const referenceText = reference.text.trim();
+                if (promptAnswer.includes(referenceText)) {
+                    referenceGroup.references.push({
+                        type: "reference",
+                        text: reference.text,
+                        link: reference.link
+                    });
+                }
+            }
+        }
+
+        if (referenceGroup.references.length > 0)
+            codeReferences.push(referenceGroup);
+    }
+    return res.status(200).send({ ...req.body, codeReferences });
+});
+
 // Creates a new explanation
 // app.post('/explanation/', (req, res) => {
 //     const newExplanation = req.body;
 //     explanations.push(newExplanation);
 //     return res.status(201).send(newExplanation);
 // });
-
-// Fetches a specific explanation
-app.post('/breakdown-code', (req, res) => {
-    try {
-        const code = req.body.code;
-        const codeSnippets = breakdownCode(code);
-        const explanation = { code, codeSnippets };
-        return res.status(200).send(explanation);
-    }
-    catch (error) {
-        return res.status(400).send({ error: error.message });
-    }
-});
 
 app.get('/explanation/:id', (req, res) => {
     const explanation = getExplanation(req);
@@ -72,117 +170,6 @@ app.put('/explanation/:id', (req, res) => {
     saveExplanation(req, explanation);
 
     return res.status(200).send({ message: 'Explanation updated successfully' });
-});
-
-app.post('/explanation/:id/breakdown-code', (req, res) => {
-    const explanation = getExplanation(req);
-    if (!explanation)
-        return res.status(404).send({ error: 'Explanation not found' });
-
-    const { code } = explanation;
-    if (!code)
-        return res.status(400).send({ error: 'Explaination is missing code' });
-
-    // TODO Extract code snippets to seperate module
-    explanation.codeSnippets = breakdownCode(code);
-    
-    saveExplanation(req, explanation);
-
-    return res.status(200).send(explanation);
-});
-
-app.post('/explanation/:id/explain-code', async (req, res) => {
-    const explanation = getExplanation(req);
-    if (!explanation)
-        return res.status(404).send({ error: 'Explanation not found' });
-
-    explanation.codeComments = [];
-
-    // Function prompts 
-    for(let snippet of explanation.codeSnippets.filter(s => s.type === "function")) {
-        const source = snippet.code ?? explanation.code.slice(snippet.start, snippet.end);
-        const prompt = generatePrompt(functionPrompt, source)
-        const promptAnswer = await fetchPromptAnswerAsync(process.env.OPENAI_API_MODEL_LARGE, prompt);
-        explanation.codeComments.push({ type: "function", start: snippet.start, end: snippet.end, description: promptAnswer });
-    }
-
-    // Statement prompts
-    const statements = explanation.codeSnippets.filter(s => s.type === "statement");
-    const statementsAsStrings = statements.map(s => s.code ?? explanation.code.slice(s.start, s.end));
-    const statementsAsPrompts = generatePrompts(firstStatementPrompt, subsequentStatementPrompt, statementsAsStrings);
-    const statementsAsPromptAnswers = await fetchPromptAnswersAsync(process.env.OPENAI_API_MODEL_LARGE, statementsAsPrompts);
-    for (let i = 0; i < statements.length; i++) {
-        const statement = statements[i];
-
-        explanation.codeComments.push({
-            type: "statement",
-            start: statement.start,
-            end: statement.end,
-            description: statementsAsPromptAnswers[i]
-        });
-    }
-
-    // Expression prompts
-    const expressionGroups = explanation.codeSnippets.filter(s => s.type === "expression-group");
-    for (let expressionGroup of expressionGroups) {
-        const expressionsAsPrompts = expressionGroup.expressions.map(e => e.code ?? explanation.code.slice(e.start, e.end));
-        const prompts = generatePrompts(firstExpressionPrompt, subsequentExpressionPrompt, expressionsAsPrompts);
-        const promptAnswers = await fetchPromptAnswersAsync(process.env.OPENAI_API_MODEL_LARGE, prompts);
-        
-        for (let i = 0; i < expressionGroup.expressions.length; i++) {
-            explanation.codeComments.push({
-                type: "expression",
-                start: expressionGroup.start,
-                end: expressionGroup.end,
-                description: promptAnswers[i]
-            });
-        }
-    }
-
-    saveExplanation(req, explanation);
-
-    return res.status(200).send(explanation);
-});
-
-app.post('/explanation/:id/reference-code', async (req, res) => {
-    const explanation = getExplanation(req);
-    if (!explanation)
-        return res.status(404).send({ error: 'Explanation not found' });
-
-    explanation.codeReferences = [];
-
-    for (let snippet of explanation.codeSnippets.filter(s => s.type === "statement")) {
-        const referenceGroup = {
-            type: "reference-group",
-            start: snippet.start,
-            end: snippet.end,
-            references: []
-        }
-
-        for (let referenceCollection of referenceCollections) {
-            const statementSource = snippet.code ?? explanation.code.slice(snippet.start, snippet.end);
-            const referenceList = referenceCollection.map(s => s.text.trim()).join(", ");
-            const prompt = classificationPrompt.replace("{0}", statementSource).replace("{1}", referenceList);
-            const promptAnswer = await fetchPromptAnswerAsync(process.env.OPENAI_API_MODEL_SMALL, prompt);
-
-            for (let reference of referenceCollection) {
-                const referenceText = reference.text.trim();
-                if (promptAnswer.includes(referenceText)) {
-                    referenceGroup.references.push({
-                        type: "reference",
-                        text: reference.text,
-                        link: reference.link
-                    });
-                }
-            }
-        }
-
-        if (referenceGroup.references.length > 0)
-            explanation.codeReferences.push(referenceGroup);
-    }
-    saveExplanation(req, explanation);
-
-    return res.status(200).send(explanation);
 });
 
 app.listen(port, () => {
@@ -218,6 +205,12 @@ function getExplanation(request) {
         
         // Save explanation to file
         const explanation = { id, code };
+
+        try {
+            explanation.codeSnippets = breakdownCode(code);
+        }
+        catch (error) { /* Ignore any errors */ }
+
         fs.writeFileSync(explanationFilePath, JSON.stringify(explanation, null, 2));
 
         return explanation;

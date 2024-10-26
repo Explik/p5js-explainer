@@ -158,7 +158,7 @@ export default {
     methods: {
         handleCodeUpdate() {
             this.isCodeUpdated = true;
-            this.$emit('file-code-update', this.fileContent);
+            this.$emit('update-code', this.fileContent);
         },
         handleReferenceDeleted(referenceGroup, reference) {
             referenceGroup.references = referenceGroup.references.filter(r => r !== reference);
@@ -174,16 +174,17 @@ export default {
                 // Do nothing
             }
             else if (newCurrentTab === 1) {
-                this.$emit('file-content-update', this.fileContent);
-                this.$emit('file-ranges-update', this.fileContent);
+                this.$emit('save');
+                this.$emit('update-comments');
                 this.currentTab = newCurrentTab;
             }
             else if (newCurrentTab === 2) {
-                this.$emit('file-comments-update', this.codeComments);
+                this.$emit('save');
+                this.$emit('update-references');
                 this.currentTab = newCurrentTab;
             }
             else if (newCurrentTab === 3) {
-                this.$emit('file-references-update', this.codeReferences);
+                this.$emit('save');
                 this.$router.push({ name: 'explain', params: { id: this.$route.params.id } });
                 return;
             }
