@@ -8,16 +8,19 @@
 
         <v-tabs-window v-model="currentTab">
             <v-tabs-window-item value="code" class="p4">
-                <v-text-field v-model="fileName" label="Fil navn" required></v-text-field>
+                <v-text-field v-model="fileName" label="Fil navn" required disabled></v-text-field>
 
                 <CodeEditor 
                     v-model="fileContent" 
                     @update:model-value="handleCodeUpdate()"
-                    :highlighted-ranges="codeRanges">
+                    :highlighted-ranges="codeRanges"
+                    style="height: 400px;">
                 </CodeEditor>
+
+                <span v-if="errorMessage" class="error">ERROR: {{ errorMessage }}</span>
                 
                 <div class="float-right">
-                    <v-btn @click="handleTabChange(1)">Gem og videre</v-btn>
+                    <v-btn :disabled="errorMessage" @click="handleTabChange(1)">Gem og videre</v-btn>
                 </div>
             </v-tabs-window-item>
 
@@ -38,7 +41,7 @@
                 </div>
 
                 <div class="float-right">
-                    <v-btn @click="handleTabChange(2)">Gem og videre</v-btn>
+                    <v-btn :disabled="errorMessage" @click="handleTabChange(2)">Gem og videre</v-btn>
                 </div>
             </v-tabs-window-item>
 
@@ -64,7 +67,7 @@
                 </div>
 
                 <div class="float-right">
-                    <v-btn @click="handleTabChange(3)">Gem</v-btn>
+                    <v-btn :disabled="errorMessage" @click="handleTabChange(3)">Gem</v-btn>
                 </div>
             </v-tabs-window-item>
         </v-tabs-window>
@@ -72,6 +75,7 @@
 </template>
 
 <script>
+import { errorMessages } from 'vue/compiler-sfc';
 import CodeEditor from './CodeEditor.vue';
 
 export default {
@@ -112,6 +116,11 @@ export default {
             type: Array,
             required: false,
             default: () => []
+        },
+        errorMessage: {
+            type: String,
+            required: false,
+            default: undefined
         }
     },
     data() {
@@ -124,9 +133,10 @@ export default {
                 { id: "comments", label: "Trin 2A - Forklaringer", title: "Forklaringer" },
                 { id: "references", label: "Trin 2B - Referencer", title: "Referencer" }
             ],
-            fileName: "",
+            fileName: this.$route.params.id + ".js",
             fileContent: this.code,
             isLoading: true,
+            isCodeUpdated: false,
         };
     },
     computed: {
@@ -137,9 +147,18 @@ export default {
             return this.currentTab === 0 && !this.code.length && !this.codeRanges.length;
         }
     },
+    watch: {
+        code(newCode) {
+            this.fileContent = newCode;
+        },
+        errorMessage(newErrorMessage) {
+            this.errorMessage = newErrorMessage;
+        }
+    },
     methods: {
         handleCodeUpdate() {
-            this.$emit('file-content-update', this.fileContent);
+            this.isCodeUpdated = true;
+            this.$emit('file-code-update', this.fileContent);
         },
         handleReferenceDeleted(referenceGroup, reference) {
             referenceGroup.references = referenceGroup.references.filter(r => r !== reference);
@@ -155,7 +174,8 @@ export default {
                 // Do nothing
             }
             else if (newCurrentTab === 1) {
-                this.$emit('file-ranges-update', this.codeRanges);
+                this.$emit('file-content-update', this.fileContent);
+                this.$emit('file-ranges-update', this.fileContent);
                 this.currentTab = newCurrentTab;
             }
             else if (newCurrentTab === 2) {

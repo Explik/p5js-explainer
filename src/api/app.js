@@ -6,7 +6,6 @@ import { compoundSyntaxNodes, extractStatements, extractFunctionDeclarations, ex
 import * as prompts from '../shared/prompts.js';
 import { firstStatementPrompt, subsequentStatementPrompt, firstExpressionPrompt, classificationPrompt, functionPrompt, subsequentExpressionPrompt } from '../shared/prompts.js';
 
-
 const app = express();
 const port = 3001;
 
@@ -16,7 +15,6 @@ const temporaryDirectory = 'public/cache';
 const outputDirectory = 'public';
 
 let operations = {};
-const explanations = [{ id: "bmi-calculator" }];
 
 // START-UP Fetch available reference
 const referenceCollections = [];
@@ -35,13 +33,25 @@ app.use(cors())
 app.use(express.json())
 
 // Creates a new explanation
-app.post('/explanation/', (req, res) => {
-    const newExplanation = req.body;
-    explanations.push(newExplanation);
-    return res.status(201).send(newExplanation);
-});
+// app.post('/explanation/', (req, res) => {
+//     const newExplanation = req.body;
+//     explanations.push(newExplanation);
+//     return res.status(201).send(newExplanation);
+// });
 
 // Fetches a specific explanation
+app.post('/breakdown-code', (req, res) => {
+    try {
+        const code = req.body.code;
+        const codeSnippets = breakdownCode(code);
+        const explanation = { code, codeSnippets };
+        return res.status(200).send(explanation);
+    }
+    catch (error) {
+        return res.status(400).send({ error: error.message });
+    }
+});
+
 app.get('/explanation/:id', (req, res) => {
     const explanation = getExplanation(req);
     if (!explanation)
@@ -58,6 +68,9 @@ app.put('/explanation/:id', (req, res) => {
     for(const key in req.body) {
         explanation[key] = req.body[key];
     }
+
+    saveExplanation(req, explanation);
+
     return res.status(200).send({ message: 'Explanation updated successfully' });
 });
 
@@ -71,34 +84,9 @@ app.post('/explanation/:id/breakdown-code', (req, res) => {
         return res.status(400).send({ error: 'Explaination is missing code' });
 
     // TODO Extract code snippets to seperate module
-    const syntaxTree = parse(code, { ecmaVersion: "latest" });
-    const functions = extractFunctionDeclarations(syntaxTree);
-    const statements = extractStatements(compoundSyntaxNodes, syntaxTree);
-
-    const functionSnippets = functions.map(node => ({ 
-        id: generateId(), 
-        type: "function", 
-        start: node.start, 
-        end: node.end 
-    }));
-    const statementSnippets = statements.map(node => ({ 
-        id: generateId(), 
-        type: "statement", 
-        start: node.start, 
-        end: node.end 
-    }));
-    const expressionGroupSnippets = statements.map(s => {
-        const expressions = [...extractExpressions(memberSyntaxNodes, s), s];
-        return {
-            id: generateId(),
-            type: "expression-group",
-            start: s.start,
-            end: s.end,
-            expressions: expressions.map((n, i) => ({ order: i, start: n.start, end: n.end }))
-        }
-    }).filter(e => e.expressions.length > 2);
-
-    explanation.codeSnippets = [...functionSnippets, ...statementSnippets, ...expressionGroupSnippets];
+    explanation.codeSnippets = breakdownCode(code);
+    
+    saveExplanation(req, explanation);
 
     return res.status(200).send(explanation);
 });
@@ -150,6 +138,9 @@ app.post('/explanation/:id/explain-code', async (req, res) => {
             });
         }
     }
+
+    saveExplanation(req, explanation);
+
     return res.status(200).send(explanation);
 });
 
@@ -189,6 +180,8 @@ app.post('/explanation/:id/reference-code', async (req, res) => {
         if (referenceGroup.references.length > 0)
             explanation.codeReferences.push(referenceGroup);
     }
+    saveExplanation(req, explanation);
+
     return res.status(200).send(explanation);
 });
 
@@ -209,11 +202,68 @@ const generateId = function(){
 
 function getExplanation(request) {
     const { id } = request.params;
-    return explanations.find(e => e.id === id);
+
+    const explanationFilePath = outputDirectory + '/' + id + '.json';
+    if (fs.existsSync(explanationFilePath)) {
+        // Load explanation from file
+        const fileContent = fs.readFileSync(explanationFilePath, 'utf-8');
+        return JSON.parse(fileContent);
+    }
+    else {
+        // Create explanation from code file
+        const codeFilePath = inputDirectory + '/' + id + '.js';
+        if (!fs.existsSync(codeFilePath))
+            throw new Error('Code file not found');
+        const code = fs.readFileSync(codeFilePath, 'utf-8');
+        
+        // Save explanation to file
+        const explanation = { id, code };
+        fs.writeFileSync(explanationFilePath, JSON.stringify(explanation, null, 2));
+
+        return explanation;
+    }
+}
+
+function saveExplanation(request, explanation) {
+    const { id } = request.params;
+    const explanationFilePath = outputDirectory + '/' + id + '.json';
+    fs.writeFileSync(explanationFilePath, JSON.stringify(explanation, null, 2));
 }
 
 function getPrompts() {
     return prompts;
+}
+
+// Returns code snippets for a given code
+function breakdownCode(code) { 
+    const syntaxTree = parse(code, { ecmaVersion: "latest" });
+    const functions = extractFunctionDeclarations(syntaxTree);
+    const statements = extractStatements(compoundSyntaxNodes, syntaxTree);
+
+    const functionSnippets = functions.map(node => ({ 
+        id: generateId(), 
+        type: "function", 
+        start: node.start, 
+        end: node.end 
+    }));
+    const statementSnippets = statements.map(node => ({ 
+        id: generateId(), 
+        type: "statement", 
+        start: node.start, 
+        end: node.end 
+    }));
+    const expressionGroupSnippets = statements.map(s => {
+        const expressions = [...extractExpressions(memberSyntaxNodes, s), s];
+        return {
+            id: generateId(),
+            type: "expression-group",
+            start: s.start,
+            end: s.end,
+            expressions: expressions.map((n, i) => ({ order: i, start: n.start, end: n.end }))
+        }
+    }).filter(e => e.expressions.length > 2);
+
+    return [...functionSnippets, ...statementSnippets, ...expressionGroupSnippets];
 }
 
 function startExplaninationTask(operationId) {

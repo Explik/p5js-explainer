@@ -160,11 +160,11 @@ export default {
 
 <style lang="css">
 #editor {
-        height: 100%;
-        min-height: 200px;
-        width: 100%;
-        border-radius: 4px;
-    }
+    height: 100%;
+    min-height: 400px;
+    width: 100%;
+    border-radius: 4px;
+}
 
 #editor.nonEditable .ace_marker-layer .ace_bracket { display: none }
 

@@ -18,8 +18,9 @@
                     :codeRanges="codeRanges" 
                     :codeComments="codeComments"
                     :codeReferences="codeReferences"
+                    :error-message="errorMessage"
+                    @file-code-update="handleCodeUpdate"
                     @file-content-update="handleContentUpdate" 
-                    @file-ranges-update="handleRangesUpdate"
                     @file-comments-update="handleCommentsUpdate"
                     @file-references-update="handleReferencesUpdate"
                     style="height: 1000px;"/>
@@ -41,14 +42,38 @@ import ExplanationEditor from '../components/ExplainationEditor.vue';
             code: "",
             codeRanges: [],
             codeComments: [],
-            codeReferences: []
+            codeReferences: [],
+            errorMessage: ""
         }),
         mounted() {
-            
+            this.fetchContent();
         },
         methods: {
-            fetchContent() {
+            async fetchContent() {
+                // Fetch explanation from server
+                const response = await fetch('http://localhost:3001/explanation/' + this.id);
+                const responseData = await response.json();
+                this.code = responseData.code;
+                this.codeRanges = responseData.codeRanges;
+                this.codeComments = responseData.codeComments;
+                this.codeReferences = responseData.codeReferences;
+            },
+            async handleCodeUpdate(newCode) {
+                const response = await fetch(`http://localhost:3001/breakdown-code`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ code: newCode })
+                });
 
+                const responseData = await response.json();
+
+                if (!responseData.error) {
+                    this.codeRanges = responseData.codeSnippets.filter(snippet => snippet.type === 'statement');
+                    this.errorMessage = undefined;
+                }
+                else this.errorMessage = responseData.error;
             },
             async handleContentUpdate(newCode) {
                 // Update state 
@@ -65,15 +90,17 @@ import ExplanationEditor from '../components/ExplainationEditor.vue';
                 });
 
                 // Fetch code ranges from server
-                const response = await fetch(`http://localhost:3001/explanation/${this.id}/breakdown-code`, { method: 'POST' });
-                const responseData = await response.json();
-                this.codeRanges = responseData.codeSnippets.filter(snippet => snippet.type === 'statement');
+                const breakdownResponse = await fetch(`http://localhost:3001/explanation/${this.id}/breakdown-code`, { method: 'POST' });
+                const breakdownResponseData = await breakdownResponse.json();
+                this.codeRanges = breakdownResponseData.codeSnippets.filter(snippet => snippet.type === 'statement');
+
+                // Save code ranges to server
+                const explainResponse = await fetch(`http://localhost:3001/explanation/${this.id}/explain-code`, { method: 'POST' });
+                const explainResponseData = await explainResponse.json();
+                this.codeComments = explainResponseData.codeComments;
             },
             async handleRangesUpdate() {
-                // Save code ranges to server
-                const response = await fetch(`http://localhost:3001/explanation/${this.id}/explain-code`, { method: 'POST' });
-                const responseData = await response.json();
-                this.codeComments = responseData.codeComments;
+                
             },
             async handleCommentsUpdate(newCodeComments) {
                 // Save code comments changes to server

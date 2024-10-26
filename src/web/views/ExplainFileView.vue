@@ -129,7 +129,13 @@ export default {
       const response = await fetch(`/${this.id}.json`);
       const responseData = await response.json();
 
-      this.content = responseData;
+      this.content = {
+        source: responseData.code,
+        statements: responseData.codeComments?.filter(c => c.type === 'statement') ?? [],
+        functions: responseData.codeComments?.filter(c => c.type === 'function') ?? [],
+        expressions: responseData.codeComments?.filter(c => c.type === 'expression') ?? [],
+        references: responseData.codeReferences?.flatMap(g => g.references.map(r => ({...r, start: g.start, end: g.end}))) ?? [],
+      };
       this.position = this.content?.statements[0]?.start ?? 0;
     },
     handleSelection(newPosition) {
