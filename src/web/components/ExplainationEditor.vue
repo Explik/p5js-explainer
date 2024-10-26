@@ -56,7 +56,9 @@
                                 @click:close="handleReferenceDeleted(referenceGroup, reference)"
                                 class="mr-2" 
                                 outlined
-                                closable="">{{ reference.text }}</v-chip>
+                                closable="">
+                                <a target="_blank" :href="reference.link">{{ reference.text }}</a>
+                            </v-chip>
                         </v-card-text>
                     </v-card>
                 </div>
