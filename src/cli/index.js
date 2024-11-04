@@ -37,9 +37,11 @@ program
     .action(async (fileGlob, options) => {
         const files = glob.sync(fileGlob).map(filePath => {
             const relativeFilePath = path.relative(process.cwd(), filePath).replace(/[\/\\]/g, '-');
+            const url = relativeFilePath.replace(/\.js$/, '');
             const outputFilePath = path.join(outputDirectory, relativeFilePath).replace(/\.js$/, '.json');
-
+            
             return {
+                url: url,
                 input: filePath,
                 output: outputFilePath
             }
@@ -68,10 +70,43 @@ program
 
         if (!options.skipIndex && !options.skipAll) {
             const indexFilePath = path.join(outputDirectory, 'index.json');
-            const indexFileContent = JSON.stringify(files.map(f => f.output), null, 2);
+            const indexFileContent = JSON.stringify(generateIndex(files), null, 2);
+
             fs.mkdirSync(path.dirname(indexFilePath), { recursive: true });
             fs.writeFileSync(indexFilePath, indexFileContent);
         }
     });
 
 program.parse(process.argv);
+
+function generateIndex(files) {
+    const index = [];
+    let lastIndex = 0; 
+
+    files.forEach(file => {
+        const parts = file.input.split(path.sep);
+        let currentLevel = index;
+
+        parts.forEach((part, index) => {
+            const existingPath = currentLevel.find(item => item.name === part);
+
+            if (existingPath) {
+                currentLevel = existingPath.items;
+            } else {
+                const isFile = index === parts.length - 1;
+                const newItem = {
+                    id: lastIndex++,
+                    type: isFile ? 'file' : 'directory',
+                    name: part,
+                    path: isFile ? file.url : undefined,
+                    items: !isFile ? [] : undefined
+                };
+
+                currentLevel.push(newItem);
+                currentLevel = newItem.items;
+            }
+        });
+    });
+
+    return index;
+}

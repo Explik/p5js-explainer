@@ -59,14 +59,7 @@ export default {
 
             const response = await fetch(`/index.json`);
             const responseData = await response.json();
-
-            const category = this.items.find(c => c.id === "default");
-            category.items = responseData.map((itemName, index) => ({ 
-                type: "file",
-                id: index, 
-                name: itemName, 
-                path: itemName.split(".")[0], 
-            }));
+            this.items = responseData;
 
             this.loading = false;
         },
