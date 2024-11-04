@@ -1,10 +1,10 @@
 import fs from 'fs';
 import cors from 'cors';
 import express from 'express';
-import { parse } from 'acorn';
-import { compoundSyntaxNodes, extractStatements, extractFunctionDeclarations, extractExpressions, memberSyntaxNodes, generateSource, generatePrompt, generatePrompts, fetchPromptAnswerAsync, fetchPromptAnswersAsync, getFilePaths, getFileNames } from '../shared/utils.js';
-import * as prompts from '../shared/prompts.js';
-import { firstStatementPrompt, subsequentStatementPrompt, firstExpressionPrompt, classificationPrompt, functionPrompt, subsequentExpressionPrompt } from '../shared/prompts.js';
+import { getFilePaths } from '../shared/utils.js';
+import { getReferer } from '../shared/generic-referer.js';
+import { getExtractor } from '../shared/js-extractor.js';
+import { getExplainer } from '../shared/p5-explainer.js';
 
 const app = express();
 const port = 3001;
@@ -25,6 +25,10 @@ for (let referenceFilePath of getFilePaths(referenceDirectory)) {
     referenceCollections.push(referenceFileCollection);
 }
 
+const extractor = getExtractor();
+const explainer = getExplainer();
+const referer = getReferer({ referenceCollections });
+
 // Enables CORS for all origins
 // See https://expressjs.com/en/resources/middleware/cors.html
 app.use(cors())
@@ -39,7 +43,8 @@ app.post('/breakdown-code', (req, res) => {
         if (!code) 
             return res.status(400).send({ error: 'Code is missing' });
 
-        const codeSnippets = breakdownCode(code);
+        const syntaxTree = extractor.parse(code);
+        const codeSnippets = extractor.extract(syntaxTree);
         return res.status(200).send({ ...req.body, codeSnippets });
     }
     catch (error) {
@@ -55,49 +60,7 @@ app.post('/explain-code', async (req, res) => {
     if (!codeSnippets)
         return res.status(400).send({ error: 'Code snippets is missing' });
 
-    const codeComments = [];
-
-    // Function prompts 
-    for(let snippet of codeSnippets.filter(s => s.type === "function")) {
-        const source = snippet.code ?? code.slice(snippet.start, snippet.end);
-        const prompt = generatePrompt(functionPrompt, source)
-        const promptAnswer = await fetchPromptAnswerAsync(process.env.OPENAI_API_MODEL_LARGE, prompt);
-        codeComments.push({ type: "function", start: snippet.start, end: snippet.end, description: promptAnswer });
-    }
-
-    // Statement prompts
-    const statements = codeSnippets.filter(s => s.type === "statement");
-    const statementsAsStrings = statements.map(s => s.code ?? code.slice(s.start, s.end));
-    const statementsAsPrompts = generatePrompts(firstStatementPrompt, subsequentStatementPrompt, statementsAsStrings);
-    const statementsAsPromptAnswers = await fetchPromptAnswersAsync(process.env.OPENAI_API_MODEL_LARGE, statementsAsPrompts);
-    for (let i = 0; i < statements.length; i++) {
-        const statement = statements[i];
-
-        codeComments.push({
-            type: "statement",
-            start: statement.start,
-            end: statement.end,
-            description: statementsAsPromptAnswers[i]
-        });
-    }
-
-    // Expression prompts
-    const expressionGroups = codeSnippets.filter(s => s.type === "expression-group");
-    for (let expressionGroup of expressionGroups) {
-        const expressionsAsPrompts = expressionGroup.expressions.map(e => e.code ?? code.slice(e.start, e.end));
-        const prompts = generatePrompts(firstExpressionPrompt, subsequentExpressionPrompt, expressionsAsPrompts);
-        const promptAnswers = await fetchPromptAnswersAsync(process.env.OPENAI_API_MODEL_LARGE, prompts);
-        
-        for (let i = 0; i < expressionGroup.expressions.length; i++) {
-            codeComments.push({
-                type: "expression",
-                start: expressionGroup.start,
-                end: expressionGroup.end,
-                description: promptAnswers[i]
-            });
-        }
-    }
-
+    const codeComments = await explainer.explainAsync(code, codeSnippets);
     return res.status(200).send({ ...req.body, codeComments });
 });
 
@@ -109,37 +72,7 @@ app.post('/reference-code', async (req, res) => {
     if (!codeSnippets)
         return res.status(400).send({ error: 'Code snippets is missing' });
 
-    const codeReferences = [];
-
-    for (let snippet of codeSnippets.filter(s => s.type === "statement")) {
-        const referenceGroup = {
-            type: "reference-group",
-            start: snippet.start,
-            end: snippet.end,
-            references: []
-        }
-
-        for (let referenceCollection of referenceCollections) {
-            const statementSource = snippet.code ?? code.slice(snippet.start, snippet.end);
-            const referenceList = referenceCollection.map(s => s.text.trim()).join(", ");
-            const prompt = classificationPrompt.replace("{0}", statementSource).replace("{1}", referenceList);
-            const promptAnswer = await fetchPromptAnswerAsync(process.env.OPENAI_API_MODEL_SMALL, prompt);
-
-            for (let reference of referenceCollection) {
-                const referenceText = reference.text.trim();
-                if (promptAnswer.includes(referenceText)) {
-                    referenceGroup.references.push({
-                        type: "reference",
-                        text: reference.text,
-                        link: reference.link
-                    });
-                }
-            }
-        }
-
-        if (referenceGroup.references.length > 0)
-            codeReferences.push(referenceGroup);
-    }
+    const codeReferences = await referer.generateReferencesAsync(code, codeSnippets);
     return res.status(200).send({ ...req.body, codeReferences });
 });
 
@@ -183,10 +116,6 @@ app.listen(port, () => {
       })
 });
 
-const generateId = function(){
-    return "id" + Math.random().toString(16).slice(2);
-}
-
 function getExplanation(request) {
     const { id } = request.params;
 
@@ -207,7 +136,7 @@ function getExplanation(request) {
         const explanation = { id, code };
 
         try {
-            explanation.codeSnippets = breakdownCode(code);
+            explanation.codeSnippets = extactor.extract(extractor.parse(code));
         }
         catch (error) { /* Ignore any errors */ }
 
@@ -221,64 +150,4 @@ function saveExplanation(request, explanation) {
     const { id } = request.params;
     const explanationFilePath = outputDirectory + '/' + id + '.json';
     fs.writeFileSync(explanationFilePath, JSON.stringify(explanation, null, 2));
-}
-
-function getPrompts() {
-    return prompts;
-}
-
-// Returns code snippets for a given code
-function breakdownCode(code) { 
-    const syntaxTree = parse(code, { ecmaVersion: "latest" });
-    const functions = extractFunctionDeclarations(syntaxTree);
-    const statements = extractStatements(compoundSyntaxNodes, syntaxTree);
-
-    const functionSnippets = functions.map(node => ({ 
-        id: generateId(), 
-        type: "function", 
-        start: node.start, 
-        end: node.end 
-    }));
-    const statementSnippets = statements.map(node => ({ 
-        id: generateId(), 
-        type: "statement", 
-        start: node.start, 
-        end: node.end 
-    }));
-    const expressionGroupSnippets = statements.map(s => {
-        const expressions = [...extractExpressions(memberSyntaxNodes, s), s];
-        return {
-            id: generateId(),
-            type: "expression-group",
-            start: s.start,
-            end: s.end,
-            expressions: expressions.map((n, i) => ({ order: i, start: n.start, end: n.end }))
-        }
-    }).filter(e => e.expressions.length > 2);
-
-    return [...functionSnippets, ...statementSnippets, ...expressionGroupSnippets];
-}
-
-function startExplaninationTask(operationId) {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            // Mark operation as complete after the delay
-            operations[operationId].status = 'completed';
-            resolve();
-        }, 10000); // 10 seconds delay to simulate long operation
-    });
-};
-
-function startReferenceTask(operationId) {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            // Mark operation as complete after the delay
-            operations[operationId].status = 'completed';
-            resolve();
-        }, 10000); // 10 seconds delay to simulate long operation
-    });
-}
-
-function getTaskStatus(operationId) {
-    return operations[operationId];
 }

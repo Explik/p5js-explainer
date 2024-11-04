@@ -5,11 +5,10 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "generate": "node --env-file=.env ./src/scripts/generate-output-files.js",
-    "start-dev": "nodemon --env-file=.env ./src/api/app.js",
-    "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "cli": "node --env-file=.env ./src/cli/index.js",
+    "serve": "concurrently \"node --env-file=.env ./src/api/app.js\" \"vite preview\"",
+    "serve-dev": "concurrently \"nodemon --env-file=.env ./src/api/app.js\" \"vite\""
   },
   "author": "",
   "license": "ISC",
@@ -27,8 +26,11 @@
     "acorn": "^8.12.1",
     "acorn-walk": "^8.3.4",
     "axios": "^1.7.7",
+    "commander": "^12.1.0",
+    "concurrently": "^9.0.1",
     "cors": "^2.8.5",
     "express": "^4.21.1",
+    "glob": "^11.0.0",
     "nodemon": "^3.1.7",
     "openai": "^4.67.3",
     "sass": "1.77.6",
