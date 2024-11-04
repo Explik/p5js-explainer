@@ -1,4 +1,5 @@
-import fs from 'fs';
+import crypto from 'crypto';
+import fs from 'fs'; 
 import path from 'path';
 import { parse } from 'acorn';
 import { Command } from 'commander';
@@ -30,6 +31,7 @@ const referer = getReferer({ referenceCollections });
 const program = new Command();
 program
     .argument('<fileGlob>', 'file glob to read files')
+    .option('--overwrite', 'overwrite existing files (even if they have not changed)')
     .option('--skip-comments', 'skip processing comments')
     .option('--skip-references', 'skip processing references')
     .option('--skip-index', 'skip generating index file')
@@ -48,7 +50,20 @@ program
         });
 
         for (let file of files) {
-            const code = fs.readFileSync(file.input, 'utf-8');
+            let code = fs.readFileSync(file.input, 'utf-8');
+            let explanation = fs.existsSync(file.output, 'utf-8') ? JSON.parse(fs.readFileSync(file.output, 'utf-8')) : undefined;
+            
+            // Checks if the code file has changed, so it can be skipped if it hasn't
+            if (explanation && !options.overwrite) {
+                let oldHash = crypto.createHash('md5').update(explanation.code).digest('hex');
+                let newHash = crypto.createHash('md5').update(code).digest('hex');
+
+                if (oldHash == newHash) {
+                    console.log(`Skipping ${file.input}, no changes detected.`);
+                    continue;
+                }
+            }
+
             const syntaxTree = extractor.parse(code);
 
             const buffer = {
