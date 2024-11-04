@@ -11,18 +11,8 @@
 
                         <v-divider></v-divider>
 
-                        <v-list v-if="!loading" v-model:opened="open">
-                            <v-list-group v-for="category in categories" :value="category.id">
-                                <template v-slot:activator="{ props }">
-                                    <v-list-item v-bind="props" prepend-icon="mdi-folder"
-                                        :title="category.name"></v-list-item>
-                                </template>
-
-                                <v-list-item v-for="item in category.items" :key="item.name" prepend-icon="mdi-file"
-                                    :title="item.name" :value="title" @click-once="() => handleSelection(item)">
-                                </v-list-item>
-                            </v-list-group>
-                        </v-list>
+                        <DirectoryTree v-if="!loading" :items="items" @select="handleSelection" />
+            
                         <v-row v-else justify="center" align="center" class="fill-height">
                             <v-progress-circular indeterminate color="grey"></v-progress-circular>
                         </v-row>
@@ -35,19 +25,27 @@
 </template>
 
 <script>
+import DirectoryTree from '../components/DirectoryTree.vue';
+
 export default {
+    components: {
+        DirectoryTree,
+    },
     data: () => ({
         loading: true,
-        open: [],
-        categories: [
+        items: [
             {
+                type: "directory",
                 id: "default",
                 name: "Alle",
                 items: [
-                    { name: "BMI Calculator", icon: "mdi-plus", path: "bmi-calculator" },
-                    { name: "Item #2", icon: "mdi-eye", path: "" },
-                    { name: "Item #3", icon: "mdi-pencil", path: "" },
-                    { name: "Item #4", icon: "mdi-delete", path: "" },
+                    { type: "directory", id: "12", name: "Item #1", 
+                        items: [{ type: "file", id: "13", name: "New file" } ]
+                    },
+                    { type: "file", id: "2", name: "BMI Calculator", icon: "mdi-plus" },
+                    { type: "file", id: "3", name: "Item #2",  path: "" },
+                    { type: "file", id: "4", name: "Item #3", path: "" },
+                    { type: "file", id: "5", name: "Item #4", path: "" },
                 ]
             },
         ],
@@ -62,8 +60,13 @@ export default {
             const response = await fetch(`/index.json`);
             const responseData = await response.json();
 
-            const category = this.categories.find(c => c.id === "default");
-            category.items = responseData.map(itemName => ({ name: itemName, path: itemName.split(".")[0], icon: 'mdi-file' }));
+            const category = this.items.find(c => c.id === "default");
+            category.items = responseData.map((itemName, index) => ({ 
+                type: "file",
+                id: index, 
+                name: itemName, 
+                path: itemName.split(".")[0], 
+            }));
 
             this.loading = false;
         },
