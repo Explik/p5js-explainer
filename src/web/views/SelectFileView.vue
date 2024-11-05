@@ -3,7 +3,7 @@
         <v-responsive>
             <v-row>
                 <v-col cols="8" class="mx-auto">
-                    <v-card style="height: 400px;">
+                    <v-card>
                         <v-card-title>
                             <v-icon left class="mr-1">mdi-robot-happy</v-icon>
                             Vælg en fil!
@@ -11,7 +11,7 @@
 
                         <v-divider></v-divider>
 
-                        <DirectoryTree v-if="!loading" :items="items" @select="handleSelection" />
+                        <DirectoryTree v-if="!loading" :items="items" @select="handleSelection" style="height: 400px" class="overflow-y-auto"/>
             
                         <v-row v-else justify="center" align="center" class="fill-height">
                             <v-progress-circular indeterminate color="grey"></v-progress-circular>
