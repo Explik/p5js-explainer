@@ -16,7 +16,7 @@ export function createGenerateReferencesAsync(options) {
     return async (code, codeSnippets) => {
         const codeReferences = [];
 
-        for(let snippet of codeSnippets) {
+        for(let snippet of codeSnippets.filter(s => s.type === "statement")) {
             const referenceGroup = {
                 type: "reference-group",
                 start: snippet.start,
