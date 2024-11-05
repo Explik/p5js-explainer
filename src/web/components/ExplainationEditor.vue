@@ -1,75 +1,90 @@
 <template>
     <v-card class="px-6 py-6 overflow-y-scroll">
-        <h1>{{ tabTitle }}</h1>
+        <h1>{{ currentTabTitle }}</h1>
 
         <v-tabs v-model="currentTab" color="primary" direction="vertical" class="mb-4">
-            <v-tab v-for="tab in tabs" :text="tab.label" :value="tab.name"></v-tab>
+            <v-tab>
+                {{ tabs[0].label }}
+            </v-tab>
+            <v-tab>
+                {{ tabs[1].label }}
+                <v-icon v-if="hasCodeCommentsChanged" color="red" class="ml-1">mdi-alert-rhombus</v-icon>
+            </v-tab>
+            <v-tab>
+                {{ tabs[2].label }}
+                <v-icon v-if="hasCodeReferencesChanged" color="red" class="ml-1">mdi-alert-rhombus</v-icon>
+            </v-tab>
         </v-tabs>
 
         <v-tabs-window v-model="currentTab">
-            <v-tabs-window-item value="code" class="p4">
+            <v-tabs-window-item value="code" class="p4" style="min-height: 100px">
                 <v-text-field v-model="fileName" label="Fil navn" required disabled></v-text-field>
 
-                <CodeEditor 
-                    v-model="fileContent" 
-                    @update:model-value="handleCodeUpdate()"
-                    :highlighted-ranges="codeRanges"
-                    style="height: 400px;">
+                <CodeEditor v-model="currentCode" @update:model-value="handleCodeUpdate()"
+                    :highlighted-ranges="codeRanges" style="height: 400px;">
                 </CodeEditor>
 
                 <span v-if="errorMessage" class="error">ERROR: {{ errorMessage }}</span>
-                
-                <div class="float-right">
-                    <v-btn :disabled="errorMessage" @click="handleTabChange(1)">Gem og videre</v-btn>
-                </div>
             </v-tabs-window-item>
 
-            <v-tabs-window-item value="comments">
-                <div v-if="codeComments.length"  v-for="(comment, index) in codeComments" :key="index" class="mb-4">
-                    <v-card :class="{updated: comment.updated}">
-                        <v-card-text>
-                            {{ this.code.slice(comment.start, comment.end) }} 
-                            <br> 
-                            <v-textarea v-model="comment.description" @update:model-value="comment.updated = true" label="Beskrivelse" rows="1"></v-textarea>
-                        </v-card-text>
-                    </v-card>
-                </div>  
-                <div v-else>
+            <v-tabs-window-item value="comments" class="p4" style="min-height: 100px">
+                <div v-if="isGeneratingComments" class="mb-4">
                     <v-row justify="center" align="center" class="fill-height">
                         <v-progress-circular indeterminate color="grey" style="height: 100px;"></v-progress-circular>
                     </v-row>
                 </div>
+                <div v-else-if="!codeComments.length" class="mb-4">
+                    <v-btn @click="handleCodeCommentUpdate" class="mt-4">Generer kode kommentarer</v-btn>
+                </div>
+                <div v-else-if="hasCodeChanged" class="mb-4">
+                    <v-alert type="warning" outlined>
+                        Kommentarerne er potentielt forældede. Regenerer dem for at sikre at de passer til den nye kode.
+                    </v-alert>
 
-                <div class="float-right">
-                    <v-btn :disabled="errorMessage" @click="handleTabChange(2)">Gem og videre</v-btn>
+                    <v-btn @click="handleCodeCommentUpdate" class="mt-4">Regenerer kode kommentarer</v-btn>
+                </div>
+
+                <div v-if="codeComments.length" v-for="(comment, index) in codeComments" :key="index" class="mb-4">
+                    <v-card :class="{ updated: comment.updated }">
+                        <v-card-text>
+                            {{ this.code.slice(comment.start, comment.end) }}
+                            <br>
+                            <v-textarea v-model="comment.description" @update:model-value="comment.updated = true"
+                                label="Beskrivelse" rows="1"></v-textarea>
+                        </v-card-text>
+                    </v-card>
                 </div>
             </v-tabs-window-item>
 
-            <v-tabs-window-item value="references">
-                <div v-if="codeReferences.length" v-for="(referenceGroup, index) in codeReferences" :key="index" class="mb-4">
+            <v-tabs-window-item value="references" class="p4" style="min-height: 100px">
+                <div v-if="isGeneratingReferences" class="mb-4">
+                    <v-row justify="center" align="center" class="fill-height">
+                        <v-progress-circular indeterminate color="grey" style="height: 100px;"></v-progress-circular>
+                    </v-row>
+                </div>
+                <div v-else-if="!codeReferences.length" class="mb-4">
+                    <v-btn @click="handleCodeReferenceUpdate" class="mt-4">Generer kode referencer</v-btn>
+                </div>
+                <div v-else-if="hasCodeChanged" class="mb-4">
+                    <v-alert type="warning" outlined>
+                        Referencerne er potentielt forældede. Regenerer dem for at sikre at de passer til den nye kode.
+                    </v-alert>      
+                    <v-btn @click="handleCodeReferenceUpdate" class="mt-4">Regenerer kode referencer</v-btn>              
+                </div>
+                
+                <div v-if="codeReferences.length" v-for="(referenceGroup, index) in codeReferences" :key="index"
+                    class="mb-4">
                     <v-card>
                         <v-card-text>
-                            {{ this.code.slice(referenceGroup.start, referenceGroup.end) }} 
+                            {{ this.code.slice(referenceGroup.start, referenceGroup.end) }}
                             <br>
-                            <v-chip 
-                                v-for="reference in referenceGroup.references" 
-                                @click:close="handleReferenceDeleted(referenceGroup, reference)"
-                                class="mr-2" 
-                                outlined
+                            <v-chip v-for="reference in referenceGroup.references"
+                                @click:close="handleReferenceDeleted(referenceGroup, reference)" class="mr-2" outlined
                                 closable="">
                                 <a target="_blank" :href="reference.link">{{ reference.text }}</a>
                             </v-chip>
                         </v-card-text>
                     </v-card>
-                </div>
-                <div v-else>
-                    <v-row justify="center" align="center" class="fill-height">
-                        <v-progress-circular indeterminate color="grey" style="height: 100px;"></v-progress-circular>
-                    </v-row>
-                </div>
-
-                <div class="float-right">
-                    <v-btn :disabled="errorMessage" @click="handleTabChange(3)">Gem</v-btn>
                 </div>
             </v-tabs-window-item>
         </v-tabs-window>
@@ -136,22 +151,38 @@ export default {
                 { id: "references", label: "Trin 2B - Referencer", title: "Referencer" }
             ],
             fileName: this.$route.params.id + ".js",
-            fileContent: this.code,
-            isLoading: true,
-            isCodeUpdated: false,
+            currentCode: this.code,
+            codeForComments: this.code,
+            codeForReferences: this.code,
+            isGeneratingComments: false,
+            isGeneratingReferences: false
         };
     },
     computed: {
-        tabTitle() {
+        currentTabTitle() {
             return this.tabs[this.currentTab]?.title ?? "[tabTitle]";
         },
-        isCurrentTabLocked() {
-            return this.currentTab === 0 && !this.code.length && !this.codeRanges.length;
+        hasCodeChanged() {
+            return this.currentCode !== this.code;
+        },
+        hasCodeCommentsChanged() {
+            return this.codeComments?.length && this.codeForComments !== this.currentCode;
+        },
+        hasCodeReferencesChanged() {
+            return this.codeReferences?.length && this.codeForReferences !== this.currentCode;
         }
     },
     watch: {
         code(newCode) {
-            this.fileContent = newCode;
+            this.currentCode = newCode;
+        },
+        codeComments(newComments) {
+            this.codeForComments = this.code;
+            this.isGeneratingComments = false;
+        },
+        codeReferences(newReferences) {
+            this.codeForReferences = this.code;
+            this.isGeneratingReferences = false;
         },
         errorMessage(newErrorMessage) {
             this.errorMessage = newErrorMessage;
@@ -159,45 +190,26 @@ export default {
     },
     methods: {
         handleCodeUpdate() {
-            this.isCodeUpdated = true;
-            this.$emit('update-code', this.fileContent);
+            this.$emit('update-code', this.currentCode);
+        },
+        handleCodeCommentUpdate() {
+            this.isGeneratingComments = true;
+            this.$emit('update-comments');
+        },
+        handleCodeReferenceUpdate() {
+            this.isGeneratingReferences = true;
+            this.$emit('update-references');
         },
         handleReferenceDeleted(referenceGroup, reference) {
             referenceGroup.references = referenceGroup.references.filter(r => r !== reference);
             referenceGroup.updated = true;
-        },
-        handleTabChange(newCurrentTab) {
-            if (this.currentTab === newCurrentTab)
-                return;
-            if (this.isCurrentTabLocked) 
-                return;
-            
-            if (newCurrentTab === 0) {
-                // Do nothing
-            }
-            else if (newCurrentTab === 1) {
-                this.$emit('save');
-                this.$emit('update-comments');
-                this.currentTab = newCurrentTab;
-            }
-            else if (newCurrentTab === 2) {
-                this.$emit('save');
-                this.$emit('update-references');
-                this.currentTab = newCurrentTab;
-            }
-            else if (newCurrentTab === 3) {
-                this.$emit('save');
-                this.$router.push({ name: 'explain', params: { id: this.$route.params.id } });
-                return;
-            }
-            else throw new Error("Invalid tab index");
         }
     }
 }
 </script>
 
 <style>
-    .updated {
-        border-left: 4px solid lightblue;
-    }
+.updated {
+    border-left: 4px solid lightblue;
+}
 </style>

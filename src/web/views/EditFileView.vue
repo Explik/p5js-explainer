@@ -3,11 +3,11 @@
         <v-responsive>
             <v-app-bar color="white">
                 <v-app-bar-title>Edit</v-app-bar-title>
-                <v-btn> 
+                <v-btn @click-once="handleRevert"> 
                     <v-icon>mdi-undo-variant</v-icon>
                     Revert
                 </v-btn>
-                <v-btn>
+                <v-btn @click-once="handleSave">
                     <v-icon>mdi-content-save-all</v-icon>
                     Save
                 </v-btn>
@@ -21,8 +21,7 @@
                     :error-message="errorMessage"
                     @update-code="handleCodeUpdate" 
                     @update-comments="handleCommentsUpdate"
-                    @update-references="handleReferencesUpdate"
-                    @save="handleSave"/>
+                    @update-references="handleReferencesUpdate"/>
             </v-main>
         </v-responsive>
     </v-container>
@@ -78,8 +77,8 @@ import ExplanationEditor from '../components/ExplainationEditor.vue';
 
                 if (!responseData.error) {
                     this.codeSnippets = responseData.codeSnippets;
-                    this.codeComments = []; // Invalidates existing comments 
-                    this.codeReferences = []; // Invalidates existing references
+                    //this.codeComments = []; // Invalidates existing comments 
+                    //this.codeReferences = []; // Invalidates existing references
                     this.errorMessage = undefined;
                 }
                 else this.errorMessage = responseData.error;
@@ -116,6 +115,9 @@ import ExplanationEditor from '../components/ExplainationEditor.vue';
                 }
                 else this.errorMessage = responseData.error;
             },
+            async handleRevert() {
+                this.fetchContent();
+            },
             async handleSave() {
                 const explaination = {
                     code: this.code,
@@ -131,7 +133,6 @@ import ExplanationEditor from '../components/ExplainationEditor.vue';
                     },
                     body: JSON.stringify(explaination)
                 });
-
             }
         }
     }
