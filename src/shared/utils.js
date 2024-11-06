@@ -1,8 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 import OpenAI from "openai";
-import * as walk from 'acorn-walk';
 
+export function generateId(){
+    return "id" + Math.random().toString(16).slice(2);
+}
 
 export function generatePrompt(prompt, placeholders) {
     if (!Array.isArray(placeholders))
@@ -25,12 +27,12 @@ export function generatePrompts(firstPrompt, subsequentPrompt, placeholders) {
     });
 }
 
-export async function fetchPromptAnswerAsync(prompt) {
-    const promptAnswers = await fetchPromptAnswersAsync([prompt]);
+export async function fetchPromptAnswerAsync(model, prompt) {
+    const promptAnswers = await fetchPromptAnswersAsync(model, [prompt]);
     return promptAnswers[0];
 }
 
-export async function fetchPromptAnswersAsync(prompts) {
+export async function fetchPromptAnswersAsync(model, prompts) {
     const messages = []; // Initialize conversation messages array
     const responses = []; // Array to hold all responses
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -41,7 +43,7 @@ export async function fetchPromptAnswersAsync(prompts) {
 
         try {
             const response = await openai.chat.completions.create({
-                model: process.env.OPENAI_API_MODEL,
+                model: model,
                 messages: messages,
                 temperature: 1,
                 max_tokens: 2048,
@@ -88,65 +90,6 @@ export async function generateFileIfNonExistentAsync(filePath, contentCallback) 
         fs.mkdirSync(path.dirname(filePath), { recursive: true });
         fs.writeFileSync(filePath, content);
     }
-}
-
-export const compoundSyntaxNodes = [
-    'BlockStatement', 
-    'IfStatement', 
-    'SwitchStatement',
-    'ForStatement',
-    'ForInStatement',
-    'ForOfStatement',
-    'WhileStatement',
-    'DoWhileStatement',
-    'TryStatement',
-    'CatchClause',
-    'FunctionDeclaration',
-    'FunctionExpression',
-];
-
-export const memberSyntaxNodes = [
-    'Identifier',
-    'MemberExpression',
-    'Literal'
-]
-
-export function extractFunctionDeclarations(syntaxTree) {
-    const functionDeclarations = [];
-
-    walk.simple(syntaxTree, {
-        FunctionDeclaration(node) {
-            functionDeclarations.push(node);
-        }
-    });
-
-    return functionDeclarations;
-}
-
-export function extractStatements(excludedNodeTypes, syntaxTree) {
-    const allStatements = [];
-
-    walk.ancestor(syntaxTree, {
-        Statement(node) {
-            if(!excludedNodeTypes.includes(node.type))
-                allStatements.push(node);
-        }
-    });
-
-    return allStatements;
-}
-
-export function extractExpressions(excludedNodeTypes, node) {
-    const expressions = [];
-
-    walk.simple(node, {
-        Expression(node) {
-            if (!excludedNodeTypes.includes(node.type))
-                expressions.push(node);
-        }
-    });
-
-    return expressions;
 }
 
 export function generateSource(source, syntaxNode) {

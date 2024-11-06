@@ -1,13 +1,14 @@
 <template>
-    <div id="editor" ref="editor"></div>
+    <div id="editor" :class="{nonEditable: nonEditable}" ref="editor"></div>
 </template>
 
 <script>
 export default {
     props: {
-        code: {
+        modelValue: {
             type: String,
-            required: true
+            required: false,
+            default: ""
         },
         clickableRanges: {
             type: Array,
@@ -16,6 +17,10 @@ export default {
         highlightedRanges: {
             type: Array,
             default: () => []
+        },
+        nonEditable: {
+            type: Boolean,
+            default: false
         }
     },
     data: () => ({
@@ -27,21 +32,33 @@ export default {
         this.editor = ace.edit(this.$refs.editor);
         this.editor.setTheme("ace/theme/xcode");
         this.editor.session.setMode("ace/mode/javascript");
-
-        // Removing (default) interactive elements 
         this.editor.setShowPrintMargin(false);
-        this.editor.setReadOnly(true);
-        this.editor.setHighlightActiveLine(false);
-        this.editor.setHighlightGutterLine(false);
-        this.editor.renderer.$cursorLayer.element.style.display = "none"
 
-        this.editor.setValue(this.code);
+        // Removing (default) interactive elements if non-editable
+        if (this.nonEditable) {
+            this.editor.setReadOnly(true);
+            this.editor.setHighlightActiveLine(false);
+            this.editor.setHighlightGutterLine(false);
+            this.editor.renderer.$cursorLayer.element.style.display = "none"
+        }
+        
+        // Populate editor with input and set up event listeners
+        this.editor.setValue(this.modelValue);
+        this.editor.clearSelection();
         this.editor.on("mousedown", this.handleSelection);
+        this.editor.on("change", this.handleInput);
     },
     watch: {
-        code() {
-            this.editor.setValue(this.code, 0);
-            this.editor.clearSelection();
+        modelValue() {
+            if (!this.editor) {
+                console.error('Editor is not initialized');
+                return;
+            }
+
+            if (this.editor.getValue() !== this.modelValue) {
+                this.editor.setValue(this.modelValue);
+                this.editor.clearSelection();
+            }
         },
         clickableRanges() {
             this.updateRanges();
@@ -51,6 +68,14 @@ export default {
         }
     },
     methods: {
+        handleInput() {
+            if (!this.editor) {
+                console.error('Editor is not initialized');
+                return;
+            }
+
+            this.$emit('update:modelValue', this.editor.getValue());
+        },
         handleSelection(e) {
             if (!this.editor) {
                 console.log('Editor is not initialized');
@@ -136,11 +161,12 @@ export default {
 <style lang="css">
 #editor {
     height: 100%;
+    min-height: 400px;
     width: 100%;
     border-radius: 4px;
 }
 
-#editor .ace_marker-layer .ace_bracket { display: none }
+#editor.nonEditable .ace_marker-layer .ace_bracket { display: none }
 
 .highlight-primary {
     position: absolute;

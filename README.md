@@ -22,13 +22,16 @@ OPENAI_API_MODEL=gpt-4o
 OPENAI_API_KEY=[INSERT_API_KEY_HERE]
 ```
 
-4. Run scripts
+## Usage
+Web commands: 
+`npm run serve` - Starts an edit server
+`npm run serve-dev` - Starts an edit server with hot reloading of api and web changes
+`npm run build` - Builds static bundle for view-only server
 
-Run `generate` command to create non-version-controlled files 
-```
-npm run generate
-```
+CLI commands:
+`npm run cli -- GLOB_PATTERN` - Generates an .json (containing comments & references) for each file and an index for files matching the pattern
+`npm run cli -- GLOB_PATTERN --skip-comments --skip-references` - Skips comments and references generation 
+`npm run cli -- GLOB_PATTERN --skip-index` - Skips index generation
+`npm run cli -- GLOB_PATTERN --skip-all` - Skips comment, reference, and index generation
 
-5. Open web interface
-
-Serve `index.html` with a webserver. 
+PLEASE NOTE, the CLI commands will overwrite existing files with the same name.
