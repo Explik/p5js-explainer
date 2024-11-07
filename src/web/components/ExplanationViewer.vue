@@ -38,7 +38,7 @@
         </div>
 
         <div v-if="functionDescription" class="mb-8">
-            <h3 class="underline">Kontekst</h3>
+            <h3 v-if="statementDescription" class="underline">Kontekst</h3>
             <v-card>
                 <v-card-text>
                     {{ functionDescription }}
