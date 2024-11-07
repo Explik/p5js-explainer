@@ -1,7 +1,7 @@
 <template>
     <v-card class="px-6 py-6 overflow-y-scroll">
-        <h2 class="mb-2">Forklaring af "{{formattedStatement}}"</h2>
-        <div id="statements" class="mb-8">
+        <h2 class="mb-2">Forklaring af {{explanationTitle}}</h2>
+        <div v-if="statementDescription" id="statements" class="mb-8">
             <div class="mb-2">
                 <v-card>
                     <v-card-text>
@@ -86,12 +86,13 @@ export default {
         }
     },
     computed: {
-        formattedStatement() {
+        explanationTitle() {
             if (!this.statement)
-                return "????"
+                return "Program"
 
             const maxLength = 25; 
-            return (this.statement.length > maxLength - 3) ? this.statement.substring(0, maxLength - 3) + "..." : this.statement;
+            const shortenedStatement = (this.statement.length > maxLength - 3) ? this.statement.substring(0, maxLength - 3) + "..." : this.statement;
+            return "\"" + shortenedStatement + "\"";
         },
         functionDescription() {
             return this.descriptions?.function;
