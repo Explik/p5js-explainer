@@ -18,7 +18,8 @@ npm install
 
 Create an environment file `.env` in the project with the following content. 
 ```
-OPENAI_API_MODEL=gpt-4o
+OPENAI_API_MODEL_LARGE=gpt-4o
+OPENAI_API_MODEL_SMALL=gpt-4o-mini
 OPENAI_API_KEY=[INSERT_API_KEY_HERE]
 ```
 
