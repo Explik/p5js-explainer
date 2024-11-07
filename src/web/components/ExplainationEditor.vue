@@ -183,9 +183,6 @@ export default {
         codeReferences(newReferences) {
             this.codeForReferences = this.code;
             this.isGeneratingReferences = false;
-        },
-        errorMessage(newErrorMessage) {
-            this.errorMessage = newErrorMessage;
         }
     },
     methods: {
