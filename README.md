@@ -24,14 +24,14 @@ OPENAI_API_KEY=[INSERT_API_KEY_HERE]
 
 ## Usage
 Web commands: 
-`npm run serve` - Starts an edit server
-`npm run serve-dev` - Starts an edit server with hot reloading of api and web changes
-`npm run build` - Builds static bundle for view-only server
+- `npm run serve` - Starts an edit server
+- `npm run serve-dev` - Starts an edit server with hot reloading of api and web changes
+- `npm run build` - Builds static bundle for view-only server
 
 CLI commands:
-`npm run cli -- GLOB_PATTERN` - Generates an .json (containing comments & references) for each file and an index for files matching the pattern
-`npm run cli -- GLOB_PATTERN --skip-comments --skip-references` - Skips comments and references generation 
-`npm run cli -- GLOB_PATTERN --skip-index` - Skips index generation
-`npm run cli -- GLOB_PATTERN --skip-all` - Skips comment, reference, and index generation
+- `npm run cli -- GLOB_PATTERN` - Generates an .json (containing comments & references) for each file and an index for files matching the pattern
+- `npm run cli -- GLOB_PATTERN --skip-comments --skip-references` - Skips comments and references generation 
+- `npm run cli -- GLOB_PATTERN --skip-index` - Skips index generation
+- `npm run cli -- GLOB_PATTERN --skip-all` - Skips comment, reference, and index generation
 
 PLEASE NOTE, the CLI commands will overwrite existing files with the same name.
