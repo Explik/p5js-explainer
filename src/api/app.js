@@ -11,10 +11,7 @@ const port = 3001;
 
 const inputDirectory = 'data';
 const referenceDirectory = 'data/references';
-const temporaryDirectory = 'public/cache';
 const outputDirectory = 'public';
-
-let operations = {};
 
 // START-UP Fetch available reference
 const referenceCollections = [];
@@ -76,13 +73,9 @@ app.post('/reference-code', async (req, res) => {
     return res.status(200).send({ ...req.body, codeReferences });
 });
 
-// Creates a new explanation
-// app.post('/explanation/', (req, res) => {
-//     const newExplanation = req.body;
-//     explanations.push(newExplanation);
-//     return res.status(201).send(newExplanation);
-// });
+// TODO implement POST /explaination
 
+// Fetches an explanation
 app.get('/explanation/:id', (req, res) => {
     const explanation = getExplanation(req);
     if (!explanation)
@@ -91,6 +84,7 @@ app.get('/explanation/:id', (req, res) => {
     return res.status(200).send(explanation);
 });
 
+// Updates an explanation (missing properties are ignored)
 app.put('/explanation/:id', (req, res) => {
     const explanation = getExplanation(req);
     if (!explanation)
@@ -100,9 +94,9 @@ app.put('/explanation/:id', (req, res) => {
         explanation[key] = req.body[key];
     }
 
-    saveExplanation(req, explanation);
+    const savedExplanation = saveExplanation(req, explanation);
 
-    return res.status(200).send({ message: 'Explanation updated successfully' });
+    return res.status(200).send(savedExplanation);
 });
 
 app.listen(port, () => {
@@ -135,6 +129,7 @@ function getExplanation(request) {
         // Save explanation to file
         const explanation = { id, code };
 
+        // Attempt to extract code snippets to avoid unneccessary /breakdown-code requests
         try {
             explanation.codeSnippets = extactor.extract(extractor.parse(code));
         }
@@ -149,5 +144,39 @@ function getExplanation(request) {
 function saveExplanation(request, explanation) {
     const { id } = request.params;
     const explanationFilePath = outputDirectory + '/' + id + '.json';
-    fs.writeFileSync(explanationFilePath, JSON.stringify(explanation, null, 2));
+
+    // Removes any unnecessary data before saving
+    const minimizedExplaination = {
+        id: explanation.id,
+        code: explanation.code,
+        codeSnippets: explanation.codeSnippets?.map(x => ({
+            id: x.id, 
+            type: x.type, 
+            start: x.start, 
+            end: x.end,
+            code: x.code
+        })),
+        codeComments: explanation.codeComments?.map(x => ({
+            id: x.id, 
+            type: x.type, 
+            start: x.start, 
+            end: x.end,
+            description: x.description
+        })),
+        codeReferences: explanation.codeReferences?.map(x => ({
+            id: x.id, 
+            type: x.type, 
+            start: x.start, 
+            end: x.end,
+            references: x.references?.map(y => ({
+                type: y.type,
+                text: y.text,
+                link: y.link
+            }))
+        }))
+    };
+
+    fs.writeFileSync(explanationFilePath, JSON.stringify(minimizedExplaination, null, 2));
+
+    return minimizedExplaination;
 }
