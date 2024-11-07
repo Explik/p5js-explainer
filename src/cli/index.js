@@ -117,7 +117,7 @@ function generateIndex(files) {
                     items: !isFile ? [] : undefined
                 };
 
-                currentLevel.push(newItem);
+                currentLevel.unshift(newItem);
                 currentLevel = newItem.items;
             }
         });
