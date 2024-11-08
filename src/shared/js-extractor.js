@@ -3,27 +3,6 @@ import { parse } from "acorn";
 import * as walk from 'acorn-walk';
 import { generateId } from './utils.js';
 
-export const compoundSyntaxNodes = [
-    'BlockStatement',
-    'IfStatement',
-    'SwitchStatement',
-    'ForStatement',
-    'ForInStatement',
-    'ForOfStatement',
-    'WhileStatement',
-    'DoWhileStatement',
-    'TryStatement',
-    'CatchClause',
-    'FunctionDeclaration',
-    'FunctionExpression',
-];
-
-export const memberSyntaxNodes = [
-    'Identifier',
-    'MemberExpression',
-    'Literal'
-]
-
 export function extractFunctionDeclarations(syntaxTree) {
     const functionDeclarations = [];
 
@@ -36,28 +15,57 @@ export function extractFunctionDeclarations(syntaxTree) {
     return functionDeclarations;
 }
 
-export function extractStatements(excludedNodeTypes, syntaxTree) {
+export function extractStatements(syntaxTree) {
+    const compoundSyntaxNodes = [
+        'BlockStatement',
+        'IfStatement',
+        'SwitchStatement',
+        'ForStatement',
+        'ForInStatement',
+        'ForOfStatement',
+        'WhileStatement',
+        'DoWhileStatement',
+        'TryStatement',
+        'CatchClause',
+        'FunctionDeclaration',
+        'FunctionExpression',
+    ];
+
     const allStatements = [];
 
     walk.ancestor(syntaxTree, {
         Statement(node) {
-            if (!excludedNodeTypes.includes(node.type))
+            // Skips compound statements
+            if (!compoundSyntaxNodes.includes(node.type))
                 allStatements.push(node);
+
+            // Includes condition of if statements
+            if (node.type === 'IfStatement')
+                allStatements.push(node.test);
         }
     });
 
     return allStatements;
 }
 
-export function extractExpressions(excludedNodeTypes, node) {
+export function extractExpressions(node) {
+    const memberSyntaxNodes = [
+        'Identifier',
+        'MemberExpression',
+        'Literal'
+    ];
+
     const expressions = [];
 
     walk.simple(node, {
         Expression(node) {
-            if (!excludedNodeTypes.includes(node.type))
+            if (!memberSyntaxNodes.includes(node.type))
                 expressions.push(node);
         }
     });
+
+    if (node.type !== 'ExpressionStatement')
+        expressions.push(node);
 
     return expressions;
 }
@@ -72,7 +80,7 @@ export function createParse(options) {
 export function createExtract(options) {
     return (syntaxTree) => {
         const functions = extractFunctionDeclarations(syntaxTree);
-        const statements = extractStatements(compoundSyntaxNodes, syntaxTree);
+        const statements = extractStatements(syntaxTree);
 
         const functionSnippets = functions.map(node => ({
             id: generateId(),
@@ -87,7 +95,7 @@ export function createExtract(options) {
             end: node.end
         }));
         const expressionGroupSnippets = statements.map(s => {
-            const expressions = [...extractExpressions(memberSyntaxNodes, s), s];
+            const expressions = extractExpressions(s);
             return {
                 id: generateId(),
                 type: "expression-group",
