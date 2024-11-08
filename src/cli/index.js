@@ -78,6 +78,47 @@ program
     });
 
 program
+    .command('generate-comments')
+    .argument('<fileGlob>', 'file glob to read files')
+    .option('--reprocess', 'reprocess existing files (even if they have not changed)')
+    .action(async (fileGlob, options) => {
+        const files = getFiles(fileGlob);
+
+        for (let file of files) {
+            const code = fs.readFileSync(file.input, 'utf-8');
+            const explanation = fs.existsSync(file.output, 'utf-8') ? JSON.parse(fs.readFileSync(file.output, 'utf-8')) : undefined;
+            
+            // Skips processing if the code file has not changed
+            if (explanation && !options.reprocess) {
+                if (explanation.code === code) {
+                    console.log(`Skipping ${file.input}, no changes detected.`);
+                    continue;
+                }
+            }
+
+            // Extracts code references from existing file or generate new ones
+            let buffer; 
+            let useExistingExplanation = explanation?.code && explanation?.codeSnippets && !options.overwrite;
+            if (!useExistingExplanation) {
+                let codeSnippets = extractor.extract(extractor.parse(code));
+                let codeComments = await explainer.explainAsync(code, codeSnippets);
+
+                buffer = { code, codeSnippets, codeComments };
+            }
+            else {
+                let codeComments = await explainer.explainAsync(explanation.code, explanation.codeSnippets);
+                buffer = {
+                    ...explanation,
+                    codeComments
+                };
+            }
+
+            fs.mkdirSync(path.dirname(file.output), { recursive: true });
+            fs.writeFileSync(file.output, JSON.stringify(buffer, null, 2));
+        }
+    });
+
+program
     .command('generate-references')
     .argument('<fileGlob>', 'file glob to read files')
     .option('--reprocess', 'reprocess existing files (even if they have not changed)')
@@ -117,6 +158,7 @@ program
             fs.writeFileSync(file.output, JSON.stringify(buffer, null, 2));
         }
     });
+
 
 program
     .command('generate-index')

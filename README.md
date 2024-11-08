@@ -36,7 +36,10 @@ CLI commands:
     - `--skip-references` - Skips references generation 
     - `--skip-index` - Skips index generation
     - `--skip-all` - Skips comment, reference, and index generation (only generates code snippets)
-    
+
+- `npm run cli -- generate-comments GLOB_PATTERN` - Generates/regenerates comments for all files
+    - `--reprocess` - Reprocesses all files (ignores cache)
+
 - `npm run cli -- generate-references GLOB_PATTERN` - Generates/regenerates references for all files
     - `--reprocess` - Reprocesses all files (ignores cache)
 
