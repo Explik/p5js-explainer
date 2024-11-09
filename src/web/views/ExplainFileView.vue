@@ -105,8 +105,12 @@ export default {
       
       const charCount = this.position;
       const currentStatement = this.content.statements.find(s => s.start <= charCount && charCount <= s.end);
+      const endsWithSemicolon = this.content.source[charCount - 1] === ';';
 
-      return currentStatement ? [{...currentStatement, end: currentStatement.end - 1}] : [];
+      return currentStatement ? [{
+        ...currentStatement, 
+        end: endsWithSemicolon ? currentStatement.end - 1 : currentStatement.end
+      }] : [];
     },
     clickableRanges() {
       if (!this.content)
@@ -114,9 +118,11 @@ export default {
       
       return this.content.statements
         .map(s => {
+          const endsWithSemicolon = this.content.source[s.end - 1] === ';';
+
           return {
             start: s.start,
-            end: s.end - 1,
+            end: endsWithSemicolon ? s.end - 1 : s.end,
           };
         });
     }
