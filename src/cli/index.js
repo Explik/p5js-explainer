@@ -45,7 +45,7 @@ program
             let explanation = fs.existsSync(file.output, 'utf-8') ? JSON.parse(fs.readFileSync(file.output, 'utf-8')) : undefined;
             
             // Checks if the code file has changed, so it can be skipped if it hasn't
-            if (explanation && !options.overwrite) {
+            if (explanation && !options.reprocess) {
                 if (explanation.code === code) {
                     console.log(`Skipping ${file.input}, no changes detected.`);
                     continue;
@@ -98,7 +98,7 @@ program
 
             // Extracts code references from existing file or generate new ones
             let buffer; 
-            let useExistingExplanation = explanation?.code && explanation?.codeSnippets && !options.overwrite;
+            let useExistingExplanation = explanation?.code && explanation?.codeSnippets && !options.reprocess;
             if (!useExistingExplanation) {
                 let codeSnippets = extractor.extract(extractor.parse(code));
                 let codeComments = await explainer.explainAsync(code, codeSnippets);
@@ -139,7 +139,7 @@ program
 
             // Extracts code references from existing file or generate new ones
             let buffer; 
-            let useExistingExplanation = explanation?.code && explanation?.codeSnippets && !options.overwrite;
+            let useExistingExplanation = explanation?.code && explanation?.codeSnippets && !options.reprocess;
             if (!useExistingExplanation) {
                 let codeSnippets = extractor.extract(extractor.parse(code));
                 let codeReferences = await referer.generateReferencesAsync(code, codeSnippets);
@@ -158,7 +158,6 @@ program
             fs.writeFileSync(file.output, JSON.stringify(buffer, null, 2));
         }
     });
-
 
 program
     .command('generate-index')
