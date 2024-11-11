@@ -30,9 +30,20 @@ Web commands:
 - `npm run build` - Builds static bundle for view-only server
 
 CLI commands:
-- `npm run cli -- GLOB_PATTERN` - Generates an .json (containing comments & references) for each file and an index for files matching the pattern
-- `npm run cli -- GLOB_PATTERN --skip-comments --skip-references` - Skips comments and references generation 
-- `npm run cli -- GLOB_PATTERN --skip-index` - Skips index generation
-- `npm run cli -- GLOB_PATTERN --skip-all` - Skips comment, reference, and index generation
+- `npm run cli -- generate GLOB_PATTERN` - Generates an .json (containing comments & references) for each .js file and an index for files matching the pattern
+    - `--reprocess` - Reprocesses all files (ignores cache)
+    - `--skip-comments` - Skips comments generation 
+    - `--skip-references` - Skips references generation 
+    - `--skip-index` - Skips index generation
+    - `--skip-all` - Skips comment, reference, and index generation (only generates code snippets)
+
+- `npm run cli -- generate-comments GLOB_PATTERN` - Generates/regenerates comments for all files
+    - `--reprocess` - Reprocesses all files (ignores cache)
+
+- `npm run cli -- generate-references GLOB_PATTERN` - Generates/regenerates references for all files
+    - `--reprocess` - Reprocesses all files (ignores cache)
+
+- `npm run cli -- generate-index GLOB_PATTERN` - Generates/regenerates index for all files
+    - `--reprocess` - Reprocesses all files (ignores cache)
 
 PLEASE NOTE, the CLI commands will overwrite existing files with the same name.

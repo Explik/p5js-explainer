@@ -30,40 +30,29 @@ const referer = getReferer({ referenceCollections });
 // Register commands for the CLI
 const program = new Command();
 program
+    .command('generate')
     .argument('<fileGlob>', 'file glob to read files')
-    .option('--overwrite', 'overwrite existing files (even if they have not changed)')
+    .option('--reprocess', 'reprocess existing files (even if they have not changed)')
     .option('--skip-comments', 'skip processing comments')
     .option('--skip-references', 'skip processing references')
     .option('--skip-index', 'skip generating index file')
     .option('--skip-all', 'skip all processing')
     .action(async (fileGlob, options) => {
-        const files = glob.sync(fileGlob).map(filePath => {
-            const relativeFilePath = path.relative(process.cwd(), filePath).replace(/[\/\\]/g, '-');
-            const url = relativeFilePath.replace(/\.js$/, '');
-            const outputFilePath = path.join(outputDirectory, relativeFilePath).replace(/\.js$/, '.json');
-            
-            return {
-                url: url,
-                input: filePath,
-                output: outputFilePath
-            }
-        });
+        const files = getFiles(fileGlob);
 
         for (let file of files) {
             let code = fs.readFileSync(file.input, 'utf-8');
             let explanation = fs.existsSync(file.output, 'utf-8') ? JSON.parse(fs.readFileSync(file.output, 'utf-8')) : undefined;
             
             // Checks if the code file has changed, so it can be skipped if it hasn't
-            if (explanation && !options.overwrite) {
-                let oldHash = crypto.createHash('md5').update(explanation.code).digest('hex');
-                let newHash = crypto.createHash('md5').update(code).digest('hex');
-
-                if (oldHash == newHash) {
+            if (explanation && !options.reprocess) {
+                if (explanation.code === code) {
                     console.log(`Skipping ${file.input}, no changes detected.`);
                     continue;
                 }
             }
 
+            // Generates code snippets, comments and references if not skipped
             const syntaxTree = extractor.parse(code);
 
             const buffer = {
@@ -84,17 +73,125 @@ program
         }
 
         if (!options.skipIndex && !options.skipAll) {
-            const indexFilePath = path.join(outputDirectory, 'index.json');
-            const indexFileContent = JSON.stringify(generateIndex(files), null, 2);
-
-            fs.mkdirSync(path.dirname(indexFilePath), { recursive: true });
-            fs.writeFileSync(indexFilePath, indexFileContent);
+            createIndexFile(files);
         }
+    });
+
+program
+    .command('generate-comments')
+    .argument('<fileGlob>', 'file glob to read files')
+    .option('--reprocess', 'reprocess existing files (even if they have not changed)')
+    .action(async (fileGlob, options) => {
+        const files = getFiles(fileGlob);
+
+        for (let file of files) {
+            const code = fs.readFileSync(file.input, 'utf-8');
+            const explanation = fs.existsSync(file.output, 'utf-8') ? JSON.parse(fs.readFileSync(file.output, 'utf-8')) : undefined;
+            
+            // Skips processing if the code file has not changed
+            if (explanation && !options.reprocess) {
+                if (explanation.code === code) {
+                    console.log(`Skipping ${file.input}, no changes detected.`);
+                    continue;
+                }
+            }
+
+            // Extracts code references from existing file or generate new ones
+            let buffer; 
+            let useExistingExplanation = explanation?.code && explanation?.codeSnippets && !options.reprocess;
+            if (!useExistingExplanation) {
+                let codeSnippets = extractor.extract(extractor.parse(code));
+                let codeComments = await explainer.explainAsync(code, codeSnippets);
+
+                buffer = { code, codeSnippets, codeComments };
+            }
+            else {
+                let codeComments = await explainer.explainAsync(explanation.code, explanation.codeSnippets);
+                buffer = {
+                    ...explanation,
+                    codeComments
+                };
+            }
+
+            fs.mkdirSync(path.dirname(file.output), { recursive: true });
+            fs.writeFileSync(file.output, JSON.stringify(buffer, null, 2));
+        }
+    });
+
+program
+    .command('generate-references')
+    .argument('<fileGlob>', 'file glob to read files')
+    .option('--reprocess', 'reprocess existing files (even if they have not changed)')
+    .action(async (fileGlob, options) => {
+        const files = getFiles(fileGlob);
+
+        for (let file of files) {
+            const code = fs.readFileSync(file.input, 'utf-8');
+            const explanation = fs.existsSync(file.output, 'utf-8') ? JSON.parse(fs.readFileSync(file.output, 'utf-8')) : undefined;
+            
+            // Skips processing if the code file has not changed
+            if (explanation && !options.reprocess) {
+                if (explanation.code === code) {
+                    console.log(`Skipping ${file.input}, no changes detected.`);
+                    continue;
+                }
+            }
+
+            // Extracts code references from existing file or generate new ones
+            let buffer; 
+            let useExistingExplanation = explanation?.code && explanation?.codeSnippets && !options.reprocess;
+            if (!useExistingExplanation) {
+                let codeSnippets = extractor.extract(extractor.parse(code));
+                let codeReferences = await referer.generateReferencesAsync(code, codeSnippets);
+
+                buffer = { code, codeSnippets, codeReferences };
+            }
+            else {
+                let codeReferences = await referer.generateReferencesAsync(explanation.code, explanation.codeSnippets);
+                buffer = {
+                    ...explanation,
+                    codeReferences
+                };
+            }
+
+            fs.mkdirSync(path.dirname(file.output), { recursive: true });
+            fs.writeFileSync(file.output, JSON.stringify(buffer, null, 2));
+        }
+    });
+
+program
+    .command('generate-index')
+    .argument('<fileGlob>', 'file glob to read files')
+    .action((fileGlob) => {
+        const files = getFiles(fileGlob);
+        createIndexFile(files);
     });
 
 program.parse(process.argv);
 
-function generateIndex(files) {
+function getFiles(fileGlob) {
+    return glob.sync(fileGlob).map(filePath => {
+        const relativeFilePath = path.relative(process.cwd(), filePath).replace(/[\/\\]/g, '-');
+        const url = relativeFilePath.replace(/\.js$/, '');
+        const outputFilePath = path.join(outputDirectory, relativeFilePath).replace(/\.js$/, '.json');
+        
+        return {
+            url: url,
+            input: filePath,
+            output: outputFilePath
+        }
+    });
+}
+
+function createIndexFile(files) {
+    const indexFilePath = path.join(outputDirectory, 'index.json');
+    const indexFileContent = JSON.stringify(generateIndexContent(files), null, 2);
+
+    fs.mkdirSync(path.dirname(indexFilePath), { recursive: true });
+    fs.writeFileSync(indexFilePath, indexFileContent);
+}
+
+function generateIndexContent(files) {
     const index = [];
     let lastIndex = 0; 
 
@@ -117,7 +214,7 @@ function generateIndex(files) {
                     items: !isFile ? [] : undefined
                 };
 
-                currentLevel.push(newItem);
+                currentLevel.unshift(newItem);
                 currentLevel = newItem.items;
             }
         });

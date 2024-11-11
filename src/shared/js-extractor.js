@@ -3,26 +3,14 @@ import { parse } from "acorn";
 import * as walk from 'acorn-walk';
 import { generateId } from './utils.js';
 
-export const compoundSyntaxNodes = [
-    'BlockStatement',
-    'IfStatement',
-    'SwitchStatement',
-    'ForStatement',
-    'ForInStatement',
-    'ForOfStatement',
-    'WhileStatement',
-    'DoWhileStatement',
-    'TryStatement',
-    'CatchClause',
-    'FunctionDeclaration',
-    'FunctionExpression',
-];
-
-export const memberSyntaxNodes = [
-    'Identifier',
-    'MemberExpression',
-    'Literal'
-]
+function createSnippet(type, node) {
+    return {
+        id: generateId(),
+        type,
+        start: node.start,
+        end: node.end
+    };
+}
 
 export function extractFunctionDeclarations(syntaxTree) {
     const functionDeclarations = [];
@@ -36,43 +24,121 @@ export function extractFunctionDeclarations(syntaxTree) {
     return functionDeclarations;
 }
 
-export function extractStatements(excludedNodeTypes, syntaxTree) {
-    const allStatements = [];
+// Extracts relevant "statement" nodes from the syntax tree
+export function extractStatmentNodes(syntaxTree) {
+    const compoundSyntaxNodes = [
+        'BlockStatement',
+        'IfStatement',
+        'SwitchStatement',
+        'ForStatement',
+        'ForInStatement',
+        'ForOfStatement',
+        'WhileStatement',
+        'DoWhileStatement',
+        'TryStatement',
+        'CatchClause',
+        'FunctionDeclaration',
+        'FunctionExpression',
+    ];
 
+    const buffer = [];
     walk.ancestor(syntaxTree, {
-        Statement(node) {
-            if (!excludedNodeTypes.includes(node.type))
-                allStatements.push(node);
+        Statement(node, ancestors) {
+            // Skips compound statements
+            if (!compoundSyntaxNodes.includes(node.type)) {
+                node.ancestors = [...ancestors];
+                buffer.push(node);
+            }
+
+            // Includes condition of if statements
+            if (node.type === 'IfStatement') {
+                node.test.ancestors = [...ancestors, node];
+                buffer.push(node.test);
+            }
         }
     });
-
-    return allStatements;
+    return buffer;
 }
 
-export function extractExpressions(excludedNodeTypes, node) {
+export function extractStatementSnippets(code, nodes) {
+    const snippets = [];
+
+    for(let node of nodes) {
+        let containingFunction = node.ancestors.find(a => a.type === "FunctionDeclaration");
+        
+        if (containingFunction) {
+            let statementGroup = snippets.find(s => s.type === "statement-group" && s.start === containingFunction.start && s.end === containingFunction.end);
+
+            // Create statement group if it doesn't exist
+            if (!statementGroup) {
+                // Reduces function code to preserve function signature, ex. function test() { ... }
+                let reducedFunctionCode = [
+                    code.substring(containingFunction.start, containingFunction.body.start),
+                    "{ ... }",
+                    code.substring(containingFunction.body.end, containingFunction.end)
+                ].join(""); 
+
+                // Creates a statement group for the function
+                statementGroup = {
+                    id: generateId(),
+                    type: "statement-group",
+                    start: containingFunction.start,
+                    end: containingFunction.end,
+                    code: reducedFunctionCode,
+                    statements: []
+                }
+                snippets.push(statementGroup);
+            }
+
+            // Add statement to the group
+            statementGroup.statements.push(createSnippet('statement', node));            
+        }
+        else {
+            // Global statement
+            snippets.push(createSnippet('statement', node));
+        }
+    }
+    return snippets;
+}
+
+export function extractExpressionSnippets(node) {
+    const memberSyntaxNodes = [
+        'Identifier',
+        'MemberExpression',
+        'Literal'
+    ];
+
     const expressions = [];
 
     walk.simple(node, {
         Expression(node) {
-            if (!excludedNodeTypes.includes(node.type))
+            if (!memberSyntaxNodes.includes(node.type))
                 expressions.push(node);
         }
     });
+
+    if (node.type !== 'ExpressionStatement')
+        expressions.push(node);
 
     return expressions;
 }
 
 export function createParse(options) {
-    return (code) => parse(code, {
-        ecmaVersion: "latest",
-        ...options,
-    });
+    return (code) => {
+        let syntaxTree = parse(code, {
+            ecmaVersion: "latest",
+            ...options,
+        });
+        return { code, syntaxTree };
+    };
 }
 
 export function createExtract(options) {
-    return (syntaxTree) => {
+    return ({code, syntaxTree}) => {
+        let statementNodes = extractStatmentNodes(syntaxTree);
+        
         const functions = extractFunctionDeclarations(syntaxTree);
-        const statements = extractStatements(compoundSyntaxNodes, syntaxTree);
+        const statementSnippets = extractStatementSnippets(code, statementNodes);
 
         const functionSnippets = functions.map(node => ({
             id: generateId(),
@@ -80,14 +146,8 @@ export function createExtract(options) {
             start: node.start,
             end: node.end
         }));
-        const statementSnippets = statements.map(node => ({
-            id: generateId(),
-            type: "statement",
-            start: node.start,
-            end: node.end
-        }));
-        const expressionGroupSnippets = statements.map(s => {
-            const expressions = [...extractExpressions(memberSyntaxNodes, s), s];
+        const expressionGroupSnippets = statementNodes.map(s => {
+            const expressions = extractExpressionSnippets(s);
             return {
                 id: generateId(),
                 type: "expression-group",
