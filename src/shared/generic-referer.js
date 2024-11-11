@@ -16,7 +16,11 @@ export function createGenerateReferencesAsync(options) {
     return async (code, codeSnippets) => {
         const codeReferences = [];
 
-        for(let snippet of codeSnippets.filter(s => s.type === "statement")) {
+        const ungroupedSnippets = codeSnippets.filter(s => s.type === "statement");
+        const groupedSnippets = codeSnippets.filter(s => s.type === "statement-group");
+        const combinedSnippets = [...ungroupedSnippets, ...groupedSnippets.flatMap(s => s.statements)];
+
+        for(let snippet of combinedSnippets) {
             const referenceGroup = {
                 type: "reference-group",
                 start: snippet.start,

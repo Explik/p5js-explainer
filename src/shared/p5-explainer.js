@@ -41,19 +41,33 @@ export function createExplainAsync(options) {
         }
     
         // Statement prompts
-        const statements = codeSnippets.filter(s => s.type === "statement");
-        const statementsAsStrings = statements.map(s => s.code ?? code.slice(s.start, s.end));
-        const statementsAsPrompts = generatePrompts(defaultPrompts.firstStatementPrompt, defaultPrompts.subsequentStatementPrompt, statementsAsStrings);
-        const statementsAsPromptAnswers = await fetchPromptAnswersAsync(process.env.OPENAI_API_MODEL_LARGE, statementsAsPrompts);
-        for (let i = 0; i < statements.length; i++) {
-            const statement = statements[i];
-    
-            codeComments.push({
-                type: "statement",
-                start: statement.start,
-                end: statement.end,
-                description: statementsAsPromptAnswers[i]
-            });
+        // TODO fix this implementation as it will fail if the non grouped statements are not contiguous
+        const nonGroupedStatements = codeSnippets.filter(s => s.type === "statement");
+        const nonGroupedGroup = { 
+            start: Math.min(...nonGroupedStatements.map(s => s.start)),
+            end: Math.max(...nonGroupedStatements.map(s => s.end)),
+            statements: nonGroupedStatements
+        };
+        const statementGroups = [nonGroupedGroup, ...codeSnippets.filter(s => s.type === "statement-group")];
+
+        for(let i = 0; i < statementGroups.length; i++) {
+            let previousSnippets = statementGroups.slice(0, i);
+            let currentSnippets = statementGroups[i].statements;
+            let snippets = [...previousSnippets, ...currentSnippets];
+
+            const snippetsAsStrings = snippets.map(s => s.code ?? code.slice(s.start, s.end));
+            const snippetsAsPrompts = generatePrompts(defaultPrompts.firstStatementPrompt, defaultPrompts.subsequentStatementPrompt, snippetsAsStrings);
+            const snippetsAsPromptAnswers = await fetchPromptAnswersAsync(process.env.OPENAI_API_MODEL_LARGE, snippetsAsPrompts);
+            
+            for (let j = previousSnippets.length; j < snippets.length; j++) {
+                const snippet = snippets[j];
+                codeComments.push({
+                    type: "statement",
+                    start: snippet.start,
+                    end: snippet.end,
+                    description: snippetsAsPromptAnswers[j]
+                });
+            }
         }
     
         // Expression prompts

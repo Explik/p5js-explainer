@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { extractStatements, extractFunctionDeclarations, extractExpressions, createParse, createExtract } from "./js-extractor.js";
+import { extractStatmentNodes, extractExpressionSnippets, createParse } from "./js-extractor.js";
 
 describe('internal functions', () => {
     let parse = createParse();
@@ -9,8 +9,8 @@ describe('internal functions', () => {
     describe('extract statements function', () => {
         it('should return statements in code', () => {
             const code = `let a = 5; let b = 10; console.log(a + b);`;
-            const syntaxTree = parse(code);
-            const statements = extractStatements(syntaxTree);
+            const { syntaxTree } = parse(code);
+            const statements = extractStatmentNodes(syntaxTree);
             const statementAsCode = stringify(code, statements);
 
             expect(statementAsCode).to.have.length(3);
@@ -19,7 +19,7 @@ describe('internal functions', () => {
             expect(statementAsCode).to.include('console.log(a + b);');
         });
 
-        it('should return statements in function', () => {
+        it('should return statements from function', () => {
             const code = `
                 function test() {
                     let a = 5; 
@@ -27,8 +27,8 @@ describe('internal functions', () => {
                 }
             `;
 
-            const syntaxTree = parse(code);
-            const statements = extractStatements(syntaxTree);
+            const { syntaxTree } = parse(code);
+            const statements = extractStatmentNodes(syntaxTree);
             const statementAsCode = stringify(code, statements);
 
             expect(statementAsCode).to.have.length(2);
@@ -42,8 +42,8 @@ describe('internal functions', () => {
                     console.log('5 is equal to 6');
             `;
 
-            const syntaxTree = parse(code);
-            const statements = extractStatements(syntaxTree);
+            const { syntaxTree } = parse(code);
+            const statements = extractStatmentNodes(syntaxTree);
             const statementAsCode = stringify(code, statements);
 
             expect(statementAsCode).to.have.length(2);
@@ -58,8 +58,8 @@ describe('internal functions', () => {
                 }
             `;
 
-            const syntaxTree = parse(code);
-            const statements = extractStatements(syntaxTree);
+            const { syntaxTree } = parse(code);
+            const statements = extractStatmentNodes(syntaxTree);
             const statementAsCode = stringify(code, statements);
 
             expect(statementAsCode).to.have.length(2);
@@ -79,8 +79,8 @@ describe('internal functions', () => {
                     console.log('5 is not equal to 5 or 6');
                 }
             `;
-            const syntaxTree = parse(code);
-            const statements = extractStatements(syntaxTree);
+            const { syntaxTree } = parse(code);
+            const statements = extractStatmentNodes(syntaxTree);
             const statementAsCode = stringify(code, statements);
 
             expect(statementAsCode).to.have.length(5);
@@ -95,9 +95,9 @@ describe('internal functions', () => {
     describe('extract expression function', () => {
         it('should return statement and sub expressions from declaration', () => {
             const code = `let a = 5 + 10;`;
-            const syntaxTree = parse(code);
-            const statement = extractStatements(syntaxTree)[0];
-            const expressions = extractExpressions(statement);
+            const { syntaxTree } = parse(code);
+            const statement = extractStatmentNodes(syntaxTree)[0];
+            const expressions = extractExpressionSnippets(statement);
             const expressionAsCode = stringify(code, expressions);
 
             expect(expressionAsCode).to.have.length(2);
@@ -107,13 +107,61 @@ describe('internal functions', () => {
 
         it('should return only expressions from expression statement', () => {
             const code = `5 + 10;`;
-            const syntaxTree = parse(code);
-            const statement = extractStatements(syntaxTree)[0];
-            const expressions = extractExpressions(statement);
+            const { syntaxTree } = parse(code);
+            const statement = extractStatmentNodes(syntaxTree)[0];
+            const expressions = extractExpressionSnippets(statement);
             const expressionAsCode = stringify(code, expressions);
 
             expect(expressionAsCode).to.have.length(1);
             expect(expressionAsCode).to.include('5 + 10');
+        });
+
+        it('should skip literal expression', () => {
+            const code = `let b = 5 + 10;`;
+            const { syntaxTree } = parse(code);
+            const statement = extractStatmentNodes(syntaxTree)[0];
+            const expressions = extractExpressionSnippets(statement);
+            const expressionAsCode = stringify(code, expressions);
+
+            expect(expressionAsCode).to.have.length(2);
+            expect(expressionAsCode[0]).to.equal('5 + 10');
+            expect(expressionAsCode[1]).to.equal('let b = 5 + 10;');
+        });
+
+        it ('should skip variable identifier', () => {
+            const code = `let b = a + 10;`;
+            const { syntaxTree } = parse(code);
+            const statement = extractStatmentNodes(syntaxTree)[0];
+            const expressions = extractExpressionSnippets(statement);
+            const expressionAsCode = stringify(code, expressions);
+
+            expect(expressionAsCode).to.have.length(2);
+            expect(expressionAsCode[0]).to.equal('a + 10');
+            expect(expressionAsCode[1]).to.equal('let b = a + 10;');
+        });
+
+        it('should skip member expression', () => {
+            const code = `let b = a.m + 10;`;
+            const { syntaxTree } = parse(code);
+            const statement = extractStatmentNodes(syntaxTree)[0];
+            const expressions = extractExpressionSnippets(statement);
+            const expressionAsCode = stringify(code, expressions);
+
+            expect(expressionAsCode).to.have.length(2);
+            expect(expressionAsCode[0]).to.equal('a.m + 10');
+            expect(expressionAsCode[1]).to.equal('let b = a.m + 10;');
+        });
+
+        it ('should skip function names in call expressions', () => {
+            const code = `f() + 10;`;
+            const { syntaxTree } = parse(code);
+            const statement = extractStatmentNodes(syntaxTree)[0];
+            const expressions = extractExpressionSnippets(statement);
+            const expressionAsCode = stringify(code, expressions);
+
+            expect(expressionAsCode).to.have.length(2);
+            expect(expressionAsCode[0]).to.equal('f()');
+            expect(expressionAsCode[1]).to.equal('f() + 10');
         });
     });
 });
