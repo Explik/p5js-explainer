@@ -41,11 +41,10 @@ export function createExplainAsync(options) {
         }
     
         // Statement prompts
-        // TODO fix this implementation as it will fail if the non grouped statements are not contiguous
         const nonGroupedStatements = codeSnippets.filter(s => s.type === "statement");
+        const nonGroupedStatmentAsStrings = nonGroupedStatements.map(s => s.code ?? code.slice(s.start, s.end));
         const nonGroupedGroup = { 
-            start: Math.min(...nonGroupedStatements.map(s => s.start)),
-            end: Math.max(...nonGroupedStatements.map(s => s.end)),
+            code: nonGroupedStatmentAsStrings.join("\n"),
             statements: nonGroupedStatements
         };
         const statementGroups = [nonGroupedGroup, ...codeSnippets.filter(s => s.type === "statement-group")];
