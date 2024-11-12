@@ -1,10 +1,17 @@
 <template>
-  <v-card class="px-2 py-2">
-    <iframe ref="iframe" :srcdoc="iframeContent" @load="onIframeLoad"></iframe>
+  <v-card>
+    <iframe id="iframe" ref="iframe" :srcdoc="iframeContent" @load="onIframeLoad"></iframe>
+    <div id="console-title">
+      <p class="text-subtitle-2">Console</p>
+    </div>
+    <Console id="console" :data="consoleData.value" variant="light"/>
   </v-card>
 </template>
 
 <script>
+import { Console, DataAPI } from 'vue-console-feed';
+import "vue-console-feed/style.css";
+
 export default {
   name: 'PreviewViewer',
   props: {
@@ -12,6 +19,9 @@ export default {
       type: String,
       required: true
     }
+  },
+  components: {
+    Console
   },
   data() {
     return {
@@ -40,7 +50,8 @@ export default {
 
             originalError.apply(console, args);
           }
-        `
+        `,
+        consoleData: new DataAPI(false, 0)
     };
   },
   computed: {
@@ -69,7 +80,7 @@ export default {
     },
     handleIframeMessage(event) {
       if (event.data?.type === 'log') {
-        console.log("console.log in Iframe:", ...event.data.message);
+        this.consoleData.log(...event.data.message);
       }
     }
   },
@@ -81,9 +92,25 @@ export default {
 
 <style scoped>
 /* Add any component-specific styles here */
-iframe {
+#iframe {
   width: 100%;
-  height: 100%;
+  height: calc(100% - 200px - 2rem);
+  padding: 4px;
   border: none;
+}
+
+#console-title {
+  width: 100%;
+  height: 2rem;
+  background-color: rgb(32, 33, 36);
+  color: white;
+  padding: 4px 8px;
+  border-bottom: 1px solid white;
+}
+
+#console {
+  height: 200px;
+  width: 100%;
+  background-color: rgb(32, 33, 36);
 }
 </style>
