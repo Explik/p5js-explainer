@@ -98,7 +98,7 @@ program
 
             // Extracts code references from existing file or generate new ones
             let buffer; 
-            let useExistingExplanation = explanation?.code && explanation?.codeSnippets && !options.reprocess;
+            let useExistingExplanation = explanation?.code == code && explanation?.codeSnippets;
             if (!useExistingExplanation) {
                 let codeSnippets = extractor.extract(extractor.parse(code));
                 let codeComments = await explainer.explainAsync(code, codeSnippets);
@@ -139,7 +139,7 @@ program
 
             // Extracts code references from existing file or generate new ones
             let buffer; 
-            let useExistingExplanation = explanation?.code && explanation?.codeSnippets && !options.reprocess;
+            let useExistingExplanation = explanation?.code == code && explanation?.codeSnippets;
             if (!useExistingExplanation) {
                 let codeSnippets = extractor.extract(extractor.parse(code));
                 let codeReferences = await referer.generateReferencesAsync(code, codeSnippets);
