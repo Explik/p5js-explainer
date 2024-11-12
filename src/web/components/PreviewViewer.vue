@@ -34,7 +34,7 @@ export default {
           console.log = function(...args) {
             setTimeout(() => window.parent.postMessage({
               type: 'log',
-              method: 'console.log',
+              method: 'log',
               message: args
             }, '*'), 0);
 
@@ -44,7 +44,7 @@ export default {
           console.error = function(...args) {
             setTimeout(() => window.parent.postMessage({
               type: 'log',
-              method: 'console.error',
+              method: 'error',
               message: args
             }, '*'), 0);
 
@@ -80,7 +80,7 @@ export default {
     },
     handleIframeMessage(event) {
       if (event.data?.type === 'log') {
-        this.consoleData.log(...event.data.message);
+        this.consoleData[event.data.method](...event.data.message);
       }
     }
   },
@@ -90,7 +90,7 @@ export default {
 };
 </script>
 
-<style scoped>
+<style>
 /* Add any component-specific styles here */
 #iframe {
   width: 100%;
@@ -113,5 +113,9 @@ export default {
   width: 100%;
   background-color: rgb(32, 33, 36);
   overflow-y: auto;
+}
+
+#console .console-location {
+  display: none;
 }
 </style>
