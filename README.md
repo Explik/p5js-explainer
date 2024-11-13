@@ -1,5 +1,16 @@
 # p5.js Explainer
-Description to come...
+P5.js Explainer is an "automatic" code explanation tool. 
+The tool is build as a personal project and is not associated with or endorsed by p5.js. 
+
+The tool works by a 4 step process: 
+1. It splits a code file into a series of code snippets. 
+2. It generates prompts based on code snippets. Ex. What does "let x = 0;" mean? 
+3. It sends the prompts to OpenAI and captures the responds
+4. It processes the responds and use it to populate a Web UI
+
+The resulting Web UI displays a line-for-line explanation incl. links of the code file. 
+
+Demo: https://white-ocean-061ba6a10.5.azurestaticapps.net/
 
 ## Installation
 1. Clone repository:
