@@ -210,6 +210,28 @@ describe('internal functions', () => {
             expect(statementAsCode).to.include('i++');
             expect(statementAsCode).to.include("console.log('i: ' + i);");
         });
+
+        it('should return statements from class members', () => {
+            const code = `
+                class Test {
+                    constructor() {
+                        this.a = 5;
+                    }
+
+                    method() {
+                        console.log(this.a);
+                    }
+                }
+            `;
+
+            const { syntaxTree } = parse(code);
+            const statements = extractStatmentNodes(syntaxTree);
+            const statementAsCode = stringify(code, statements);
+
+            expect(statementAsCode).to.have.length(2);
+            expect(statementAsCode).to.include('this.a = 5;');
+            expect(statementAsCode).to.include("console.log(this.a);");
+        });
     });
 
     describe('extract expression function', () => {

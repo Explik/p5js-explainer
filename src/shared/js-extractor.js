@@ -39,6 +39,7 @@ export function extractStatmentNodes(syntaxTree) {
         'CatchClause',
         'FunctionDeclaration',
         'FunctionExpression',
+        'ClassDeclaration',
     ];
 
     const buffer = [];
