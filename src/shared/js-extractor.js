@@ -39,6 +39,7 @@ export function extractStatmentNodes(syntaxTree) {
         'CatchClause',
         'FunctionDeclaration',
         'FunctionExpression',
+        'ClassDeclaration',
     ];
 
     const buffer = [];
@@ -50,10 +51,26 @@ export function extractStatmentNodes(syntaxTree) {
                 buffer.push(node);
             }
 
-            // Includes condition of if statements
-            if (node.type === 'IfStatement') {
+            // Includes condition of if, while, do while statements
+            if (['IfStatement', 'WhileStatement', 'DoWhileStatement'].includes(node.type)) {
                 node.test.ancestors = [...ancestors, node];
                 buffer.push(node.test);
+            }
+
+            if (node.type == "SwitchStatement") {
+                node.discriminant.ancestors = [...ancestors, node];
+                buffer.push(node.discriminant);
+            }
+
+            // Includes init, condition and update of for statements
+            if (node.type == "ForStatement") {
+                let subNodeAncestors = [...ancestors, node];
+
+                node.init.ancestors = subNodeAncestors;
+                node.test.ancestors = subNodeAncestors;
+                node.update.ancestors = subNodeAncestors;
+
+                buffer.push(node.init, node.test, node.update);
             }
         }
     });

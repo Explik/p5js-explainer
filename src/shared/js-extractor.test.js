@@ -90,6 +90,148 @@ describe('internal functions', () => {
             expect(statementAsCode).to.include("console.log('5 is equal to 5');");
             expect(statementAsCode).to.include("console.log('5 is not equal to 5 or 6');");
         });
+
+        it('should return condition and body for switch statement', () => {
+            const code = `
+                switch (i) {
+                    case 1:
+                        console.log('i is 1');
+                        break;
+                    default:
+                        console.log('i is not 1');
+                }
+            `;
+            const { syntaxTree } = parse(code);
+            const statements = extractStatmentNodes(syntaxTree);
+            const statementAsCode = stringify(code, statements);
+
+            expect(statementAsCode).to.have.length(4);
+            expect(statementAsCode).to.include('i');
+            expect(statementAsCode).to.include("console.log('i is 1');");
+            expect(statementAsCode).to.include("break;");
+            expect(statementAsCode).to.include("console.log('i is not 1');");
+        });
+
+        it('should return condition and body for while statement without block', () => {
+            const code = `
+                while (i > 6)
+                    i--;
+            `;
+            const { syntaxTree } = parse(code);
+            const statements = extractStatmentNodes(syntaxTree);
+            const statementAsCode = stringify(code, statements);
+
+            expect(statementAsCode).to.have.length(2);
+            expect(statementAsCode).to.include('i > 6');
+            expect(statementAsCode).to.include('i--;');
+        });
+
+        it('should return condition and body for while statement with block', () => {
+            const code = `
+                while (i > 6) {
+                    console.log('i: ' + i);
+                    i--;
+                }
+            `;
+
+            const { syntaxTree } = parse(code);
+            const statements = extractStatmentNodes(syntaxTree);
+            const statementAsCode = stringify(code, statements);
+
+            expect(statementAsCode).to.have.length(3);
+            expect(statementAsCode).to.include('i > 6');
+            expect(statementAsCode).to.include("console.log('i: ' + i);");
+            expect(statementAsCode).to.include('i--;');
+        });
+
+        it('should return condition and body for do while statement without block', () => {
+            const code = `
+                do
+                    i--;
+                while (i > 6);
+            `;
+
+            const { syntaxTree } = parse(code);
+            const statements = extractStatmentNodes(syntaxTree);
+            const statementAsCode = stringify(code, statements);
+
+            expect(statementAsCode).to.have.length(2);
+            expect(statementAsCode).to.include('i--;');
+            expect(statementAsCode).to.include('i > 6');
+        });
+
+        it('should return condition and body for do while statement with block', () => {
+            const code = `
+                do {
+                    console.log('i: ' + i);
+                    i--;
+                }
+                while (i > 6);
+            `;
+            const { syntaxTree } = parse(code);
+            const statements = extractStatmentNodes(syntaxTree);
+            const statementAsCode = stringify(code, statements);
+
+            expect(statementAsCode).to.have.length(3);
+            expect(statementAsCode).to.include("console.log('i: ' + i);");
+            expect(statementAsCode).to.include('i--;');
+            expect(statementAsCode).to.include('i > 6');
+        });
+
+        it('should return init, condition, increment and body for for statement without block', () => {
+            const code = `
+                for (let i = 0; i < 10; i++)
+                    console.log('i: ' + i);
+            `;  
+            const { syntaxTree } = parse(code);
+            const statements = extractStatmentNodes(syntaxTree);
+            const statementAsCode = stringify(code, statements);
+
+            expect(statementAsCode).to.have.length(4);
+            expect(statementAsCode).to.include('let i = 0');
+            expect(statementAsCode).to.include('i < 10');
+            expect(statementAsCode).to.include('i++');
+            expect(statementAsCode).to.include("console.log('i: ' + i);");
+        });
+
+        it('should return init, condition, increment and body for for statement with block', () => {
+            const code = `
+                for (let i = 0; i < 10; i++) {
+                    console.log('i: ' + i);
+                }
+            `;
+            const { syntaxTree } = parse(code);
+            const statements = extractStatmentNodes(syntaxTree);
+            const statementAsCode = stringify(code, statements);
+
+            expect(statementAsCode).to.have.length(4);
+            expect(statementAsCode).to.include('let i = 0');
+            expect(statementAsCode).to.include('i < 10');
+            expect(statementAsCode).to.include('i++');
+            expect(statementAsCode).to.include("console.log('i: ' + i);");
+        });
+
+        it('should return statements from class members', () => {
+            const code = `
+                class Test {
+                    constructor() {
+                        this.a = 5;
+                    }
+
+                    method() {
+                        console.log(this.a);
+                    }
+                }
+            `;
+
+            const { syntaxTree } = parse(code);
+            const statements = extractStatmentNodes(syntaxTree);
+            const statementAsCode = stringify(code, statements);
+
+            expect(statementAsCode).to.have.length(2);
+            expect(statementAsCode).to.include('this.a = 5;');
+            expect(statementAsCode).to.include("console.log(this.a);");
+        });
     });
 
     describe('extract expression function', () => {
