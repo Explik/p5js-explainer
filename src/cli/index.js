@@ -52,6 +52,8 @@ program
                 }
             }
 
+            console.log(`Processing ${file.input}...`);
+
             // Generates code snippets, comments and references if not skipped
             const syntaxTree = extractor.parse(code);
 
@@ -96,6 +98,8 @@ program
                 }
             }
 
+            console.log(`Processing ${file.input}...`);
+
             // Extracts code references from existing file or generate new ones
             let buffer; 
             let useExistingExplanation = explanation?.code == code && explanation?.codeSnippets;
@@ -136,6 +140,8 @@ program
                     continue;
                 }
             }
+
+            console.log(`Processing ${file.input}...`);
 
             // Extracts code references from existing file or generate new ones
             let buffer; 
