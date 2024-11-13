@@ -56,6 +56,11 @@ export function extractStatmentNodes(syntaxTree) {
                 buffer.push(node.test);
             }
 
+            if (node.type == "SwitchStatement") {
+                node.discriminant.ancestors = [...ancestors, node];
+                buffer.push(node.discriminant);
+            }
+
             // Includes init, condition and update of for statements
             if (node.type == "ForStatement") {
                 let subNodeAncestors = [...ancestors, node];

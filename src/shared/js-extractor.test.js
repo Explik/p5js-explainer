@@ -91,6 +91,27 @@ describe('internal functions', () => {
             expect(statementAsCode).to.include("console.log('5 is not equal to 5 or 6');");
         });
 
+        it('should return condition and body for switch statement', () => {
+            const code = `
+                switch (i) {
+                    case 1:
+                        console.log('i is 1');
+                        break;
+                    default:
+                        console.log('i is not 1');
+                }
+            `;
+            const { syntaxTree } = parse(code);
+            const statements = extractStatmentNodes(syntaxTree);
+            const statementAsCode = stringify(code, statements);
+
+            expect(statementAsCode).to.have.length(4);
+            expect(statementAsCode).to.include('i');
+            expect(statementAsCode).to.include("console.log('i is 1');");
+            expect(statementAsCode).to.include("break;");
+            expect(statementAsCode).to.include("console.log('i is not 1');");
+        });
+
         it('should return condition and body for while statement without block', () => {
             const code = `
                 while (i > 6)
