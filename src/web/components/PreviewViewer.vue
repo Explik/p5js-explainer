@@ -4,7 +4,7 @@
     <div id="console-title">
       <p class="text-subtitle-2">Console</p>
     </div>
-    <Console id="console" :data="consoleData.value" variant="light"/>
+    <Console id="console" :v-if="consoleDataUpdate" :data="consoleData.value" variant="light"/>
   </v-card>
 </template>
 
@@ -51,7 +51,8 @@ export default {
             originalError.apply(console, args);
           }
         `,
-        consoleData: new DataAPI(false, 0)
+        consoleData: new DataAPI(false, 0),
+        consoleDataUpdate: true
     };
   },
   computed: {
@@ -78,9 +79,14 @@ export default {
     onIframeLoad() {
       window.addEventListener('message', this.handleIframeMessage);
     },
-    handleIframeMessage(event) {
+    async handleIframeMessage(event) {
       if (event.data?.type === 'log') {
         this.consoleData[event.data.method](...event.data.message);
+        
+        // Force re-render of console to solve issue with console not updating on multiple of the same log
+        this.consoleDataUpdate = false;
+        await this.$nextTick();
+        this.consoleDataUpdate = true;
       }
     }
   },
